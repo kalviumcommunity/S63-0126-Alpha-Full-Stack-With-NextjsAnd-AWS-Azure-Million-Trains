@@ -1,0 +1,19 @@
+{
+  "name": "train-tracker",
+  "version": "1.0.0",
+  "main": "auth.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "next": "^16.1.4",
+    "pg": "^8.17.2",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "ws": "^8.19.0"
+  }
+}
