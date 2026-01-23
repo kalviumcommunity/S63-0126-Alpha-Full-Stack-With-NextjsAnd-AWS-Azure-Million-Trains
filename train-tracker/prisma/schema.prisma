@@ -14,3 +14,15 @@ model User {
   password  String
   createdAt DateTime @default(now())
 }
+
+model ContactRequest {
+  id            String   @id @default(cuid())
+  category      String
+  hasTicket     Boolean
+  referenceCode String?
+  message       String
+  attachmentUrl String?
+  fullName      String
+  email         String
+  createdAt     DateTime @default(now())
+}
