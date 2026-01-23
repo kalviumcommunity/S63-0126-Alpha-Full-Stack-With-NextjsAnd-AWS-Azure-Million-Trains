@@ -1,6 +1,8 @@
-export const revalidate = false; // Static project context page.
+import type { ReactElement } from "react";
 
-export default function AboutPage() {
+export const revalidate = false;
+
+export default function AboutPage(): ReactElement {
   return (
     <main
       style={{
@@ -8,7 +10,7 @@ export default function AboutPage() {
         fontFamily: "'Space Grotesk', 'Segoe UI', system-ui, sans-serif",
         lineHeight: 1.6,
         maxWidth: "720px",
-        margin: "0 auto",
+        margin: "0 auto"
       }}
     >
       <h1>About the Project</h1>

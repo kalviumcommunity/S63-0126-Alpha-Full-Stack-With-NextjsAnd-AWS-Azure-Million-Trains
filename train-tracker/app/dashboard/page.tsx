@@ -1,33 +1,52 @@
+import type { ReactElement } from "react";
+
 export const dynamic = "force-dynamic";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3000";
 
-async function getLiveStatus() {
+type TrainStatus = {
+  id?: string | number;
+  train?: string;
+  status?: string;
+  delayMinutes?: number;
+  delay?: number;
+  lastUpdated?: string;
+};
+
+type TrainStatusPayload = TrainStatus[] | { data?: TrainStatus[] };
+
+async function getLiveStatus(): Promise<TrainStatus[]> {
   const response = await fetch(`${API_BASE_URL}/api/status`, {
-    cache: "no-store",
+    cache: "no-store"
   });
 
   if (!response.ok) {
     throw new Error(`Failed to load live status (HTTP ${response.status}).`);
   }
 
-  return response.json();
+  const payload: TrainStatusPayload = await response.json();
+
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+
+  return [];
 }
 
-export default async function DashboardPage() {
-  let trains = [];
-  let errorMessage = null;
+export default async function DashboardPage(): Promise<ReactElement> {
+  let trains: TrainStatus[] = [];
+  let errorMessage: string | null = null;
 
   try {
-    const payload = await getLiveStatus();
-    if (Array.isArray(payload)) {
-      trains = payload;
-    } else if (Array.isArray(payload?.data)) {
-      trains = payload.data;
-    }
-  } catch (error) {
-    errorMessage = error instanceof Error ? error.message : "Unknown error";
+    trains = await getLiveStatus();
+  } catch (error: unknown) {
+    errorMessage =
+      error instanceof Error ? error.message : "Unable to load live data.";
   }
 
   return (
@@ -37,7 +56,7 @@ export default async function DashboardPage() {
         fontFamily: "'Space Grotesk', 'Segoe UI', system-ui, sans-serif",
         lineHeight: 1.6,
         maxWidth: "960px",
-        margin: "0 auto",
+        margin: "0 auto"
       }}
     >
       <h1>Live Delay Dashboard</h1>
@@ -46,9 +65,7 @@ export default async function DashboardPage() {
         request reflects the current network state.
       </p>
       {errorMessage && (
-        <p style={{ color: "#b00020" }}>
-          Unable to load live data: {errorMessage}
-        </p>
+        <p style={{ color: "#b00020" }}>Unable to load live data: {errorMessage}</p>
       )}
       {!errorMessage && trains.length === 0 && (
         <p>No trains are reporting delays right now.</p>
@@ -68,16 +85,14 @@ export default async function DashboardPage() {
                 borderRadius: "8px",
                 padding: "1rem",
                 background: "#0f172a",
-                color: "#f8fafc",
+                color: "#f8fafc"
               }}
             >
               <h2 style={{ marginTop: 0 }}>{train.train ?? "Unnamed Train"}</h2>
               <p style={{ margin: "0.5rem 0" }}>
                 Status: {train.status ?? "Delayed"}
               </p>
-              <p style={{ margin: "0.5rem 0" }}>
-                Delay: {delay} min
-              </p>
+              <p style={{ margin: "0.5rem 0" }}>Delay: {delay} min</p>
               <p style={{ margin: 0, fontSize: "0.9rem", opacity: 0.8 }}>
                 Updated: {updated}
               </p>

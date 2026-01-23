@@ -2,8 +2,13 @@
   "name": "train-tracker",
   "version": "1.0.0",
   "type": "module",
-  "main": "auth.js",
   "scripts": {
+    "dev": "dotenv -e .env.development -- next dev",
+    "build": "dotenv -e .env.production -- next build",
+    "build:development": "dotenv -e .env.development -- next build",
+    "build:staging": "dotenv -e .env.staging -- next build",
+    "build:production": "dotenv -e .env.production -- next build",
+    "start": "next start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -20,6 +25,12 @@
     "ws": "^8.19.0"
   },
   "devDependencies": {
-    "prisma": "^6.19.2"
+    "@types/node": "^22.10.1",
+    "@types/pg": "^8.16.0",
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.5",
+    "dotenv-cli": "^11.0.0",
+    "prisma": "^6.19.2",
+    "typescript": "^5.6.3"
   }
 }
