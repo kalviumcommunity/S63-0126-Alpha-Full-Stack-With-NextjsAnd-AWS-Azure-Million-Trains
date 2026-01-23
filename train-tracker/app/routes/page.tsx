@@ -1,31 +1,54 @@
-export const revalidate = 60; 
+import type { ReactElement } from "react";
+
+export const revalidate = 60;
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3000";
 
-async function getRouteSummaries() {
+type RouteSummary = {
+  id?: string | number;
+  name?: string;
+  averageDelay?: number;
+  avgDelay?: number;
+  trainsImpacted?: number;
+  trains?: number;
+  updated?: string;
+  lastUpdated?: string;
+};
+
+type RouteSummaryPayload = RouteSummary[] | { data?: RouteSummary[] };
+
+async function getRouteSummaries(): Promise<RouteSummary[]> {
   const response = await fetch(`${API_BASE_URL}/api/routes`);
 
   if (!response.ok) {
-    throw new Error(`Failed to load route summaries (HTTP ${response.status}).`);
+    throw new Error(
+      `Failed to load route summaries (HTTP ${response.status}).`
+    );
   }
 
-  return response.json();
+  const payload: RouteSummaryPayload = await response.json();
+
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+
+  return [];
 }
 
-export default async function RoutesPage() {
-  let routes = [];
-  let errorMessage = null;
+export default async function RoutesPage(): Promise<ReactElement> {
+  let routes: RouteSummary[] = [];
+  let errorMessage: string | null = null;
 
   try {
-    const payload = await getRouteSummaries();
-    if (Array.isArray(payload)) {
-      routes = payload;
-    } else if (Array.isArray(payload?.data)) {
-      routes = payload.data;
-    }
-  } catch (error) {
-    errorMessage = error instanceof Error ? error.message : "Unknown error";
+    routes = await getRouteSummaries();
+  } catch (error: unknown) {
+    errorMessage =
+      error instanceof Error ? error.message : "Unable to load route data.";
   }
 
   return (
@@ -35,7 +58,7 @@ export default async function RoutesPage() {
         fontFamily: "'Space Grotesk', 'Segoe UI', system-ui, sans-serif",
         lineHeight: 1.6,
         maxWidth: "960px",
-        margin: "0 auto",
+        margin: "0 auto"
       }}
     >
       <h1>Route Health (ISR)</h1>
@@ -44,9 +67,7 @@ export default async function RoutesPage() {
         statically cached and refreshed in the background every 60 seconds.
       </p>
       {errorMessage && (
-        <p style={{ color: "#b00020" }}>
-          Unable to load route data: {errorMessage}
-        </p>
+        <p style={{ color: "#b00020" }}>Unable to load route data: {errorMessage}</p>
       )}
       {!errorMessage && routes.length === 0 && (
         <p>No route summaries are available yet.</p>
@@ -55,7 +76,7 @@ export default async function RoutesPage() {
         style={{
           display: "grid",
           gap: "1rem",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))"
         }}
       >
         {routes.map((route) => (
@@ -66,7 +87,7 @@ export default async function RoutesPage() {
               borderRadius: "10px",
               padding: "1rem",
               background: "#e2e8f0",
-              color: "#0f172a",
+              color: "#0f172a"
             }}
           >
             <h2 style={{ marginTop: 0 }}>{route.name ?? "Unnamed Route"}</h2>

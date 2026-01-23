@@ -1,6 +1,8 @@
-export const revalidate = false; 
+import type { ReactElement } from "react";
 
-export default function HomePage() {
+export const revalidate = false;
+
+export default function HomePage(): ReactElement {
   return (
     <main
       style={{
@@ -8,7 +10,7 @@ export default function HomePage() {
         fontFamily: "'Space Grotesk', 'Segoe UI', system-ui, sans-serif",
         lineHeight: 1.6,
         maxWidth: "720px",
-        margin: "0 auto",
+        margin: "0 auto"
       }}
     >
       <h1>Millions of Local Trains - Real-Time Delay Tracker</h1>
@@ -31,8 +33,10 @@ export default function HomePage() {
         <ul>
           <li>Ingests raw telemetry from the operator network.</li>
           <li>Normalizes routes, trains, alerts, and live status via APIs.</li>
-          <li>Serves static, dynamic, and incremental pages so the right data
-            loads with the right freshness.</li>
+          <li>
+            Serves static, dynamic, and incremental pages so the right data loads
+            with the right freshness.
+          </li>
         </ul>
       </section>
       <p>
