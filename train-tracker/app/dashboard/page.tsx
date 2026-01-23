@@ -44,7 +44,7 @@ export default async function DashboardPage(): Promise<ReactElement> {
 
   try {
     trains = await getLiveStatus();
-  } catch (error: unknown) {
+  } catch (error) {
     errorMessage =
       error instanceof Error ? error.message : "Unable to load live data.";
   }
