@@ -56,7 +56,12 @@ export default async function DashboardPage(): Promise<ReactElement> {
         fontFamily: "'Space Grotesk', 'Segoe UI', system-ui, sans-serif",
         lineHeight: 1.6,
         maxWidth: "960px",
-        margin: "0 auto"
+        margin: "3rem auto",
+        background: "rgba(255, 255, 255, 0.95)",
+        borderRadius: "28px",
+        border: "1px solid #dbeafe",
+        boxShadow: "0 35px 80px rgba(15, 23, 42, 0.15)",
+        color: "#0f1c2e"
       }}
     >
       <h1>Live Delay Dashboard</h1>
@@ -81,11 +86,12 @@ export default async function DashboardPage(): Promise<ReactElement> {
             <article
               key={`${train.id ?? train.train ?? updated}`}
               style={{
-                border: "1px solid #1f2933",
-                borderRadius: "8px",
-                padding: "1rem",
-                background: "#0f172a",
-                color: "#f8fafc"
+                border: "1px solid #c7d7ff",
+                borderRadius: "16px",
+                padding: "1.25rem",
+                background: "#ffffff",
+                color: "#0f1c2e",
+                boxShadow: "0 18px 45px rgba(15, 23, 42, 0.08)"
               }}
             >
               <h2 style={{ marginTop: 0 }}>{train.train ?? "Unnamed Train"}</h2>

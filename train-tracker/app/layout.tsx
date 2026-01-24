@@ -17,8 +17,9 @@ export default function RootLayout({
         style={{
           minHeight: "100vh",
           margin: 0,
-          backgroundColor: "#020617",
-          color: "#e2e8f0"
+          background: "linear-gradient(145deg, #dbeafe 0%, #f8fbff 60%, #e0e7ff 100%)",
+          color: "#0f1c2e",
+          fontFamily: "'Space Grotesk', 'Segoe UI', system-ui, sans-serif"
         }}
       >
         {children}
