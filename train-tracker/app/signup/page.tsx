@@ -49,22 +49,24 @@ export default function SignupPage(): ReactElement {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "2rem"
+        padding: "2rem",
+        background: "linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)"
       }}
     >
       <section
         style={{
           width: "100%",
           maxWidth: "420px",
-          background: "#0f172a",
-          borderRadius: "12px",
-          padding: "2rem",
-          boxShadow: "0 10px 30px rgba(15, 23, 42, 0.4)",
-          color: "#e2e8f0"
+          background: "#ffffff",
+          borderRadius: "18px",
+          padding: "2.5rem",
+          border: "1px solid #dbeafe",
+          boxShadow: "0 35px 70px rgba(15, 23, 42, 0.15)",
+          color: "#0f1c2e"
         }}
       >
         <h1 style={{ marginTop: 0 }}>Create Account</h1>
-        <p style={{ marginBottom: "1.5rem", color: "#94a3b8" }}>
+        <p style={{ marginBottom: "1.5rem", color: "#475569" }}>
           Fill in the details below to track rail delays.
         </p>
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: "1rem" }}>
@@ -109,20 +111,21 @@ export default function SignupPage(): ReactElement {
               padding: "0.85rem 1.5rem",
               borderRadius: "8px",
               border: "none",
-              background: "#38bdf8",
-              color: "#020617",
+              background: "linear-gradient(120deg, #2563eb, #38bdf8)",
+              color: "#ffffff",
               fontWeight: 600,
-              cursor: isSubmitting ? "not-allowed" : "pointer"
+              cursor: isSubmitting ? "not-allowed" : "pointer",
+              boxShadow: "0 12px 30px rgba(37, 99, 235, 0.25)"
             }}
           >
             {isSubmitting ? "Creating..." : "Sign Up"}
           </button>
         </form>
         {status && (
-          <p style={{ marginTop: "1rem", color: "#34d399" }}>{status}</p>
+          <p style={{ marginTop: "1rem", color: "#047857" }}>{status}</p>
         )}
         {error && (
-          <p style={{ marginTop: "1rem", color: "#f87171" }}>{error}</p>
+          <p style={{ marginTop: "1rem", color: "#dc2626" }}>{error}</p>
         )}
         <p style={{ marginTop: "1.5rem" }}>
           Already have an account? <Link href="/login">Log in</Link>
@@ -135,7 +138,8 @@ export default function SignupPage(): ReactElement {
 const inputStyle: CSSProperties = {
   padding: "0.8rem 1rem",
   borderRadius: "8px",
-  border: "1px solid #1e293b",
-  background: "#020617",
-  color: "#e2e8f0"
+  border: "1px solid #c7d7ff",
+  background: "#f8fbff",
+  color: "#0f1c2e",
+  boxShadow: "0 8px 20px rgba(15, 23, 42, 0.08)"
 };

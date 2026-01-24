@@ -10,7 +10,12 @@ export default function HomePage(): ReactElement {
         fontFamily: "'Space Grotesk', 'Segoe UI', system-ui, sans-serif",
         lineHeight: 1.6,
         maxWidth: "720px",
-        margin: "0 auto"
+        margin: "3rem auto",
+        background: "rgba(255, 255, 255, 0.95)",
+        borderRadius: "24px",
+        border: "1px solid #dbeafe",
+        boxShadow: "0 35px 80px rgba(15, 23, 42, 0.15)",
+        color: "#0f1c2e"
       }}
     >
       <h1>Millions of Local Trains - Real-Time Delay Tracker</h1>

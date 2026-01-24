@@ -127,7 +127,7 @@ export default function ContactPage(): ReactElement {
     <main style={mainStyle}>
       <section style={cardStyle}>
         <h1 style={{ marginTop: 0 }}>Contact Us / Claims & Complaints</h1>
-        <p style={{ color: "#94a3b8", marginBottom: "1.5rem" }}>
+        <p style={{ color: "#475569", marginBottom: "1.5rem" }}>
           Tell us about your issue in a few quick steps.
         </p>
 
@@ -257,8 +257,8 @@ export default function ContactPage(): ReactElement {
           </div>
         </form>
 
-        {status && <p style={{ color: "#10b981", marginTop: "1rem" }}>{status}</p>}
-        {error && <p style={{ color: "#f87171", marginTop: "1rem" }}>{error}</p>}
+        {status && <p style={{ color: "#047857", marginTop: "1rem" }}>{status}</p>}
+        {error && <p style={{ color: "#dc2626", marginTop: "1rem" }}>{error}</p>}
       </section>
     </main>
   );
@@ -270,17 +270,18 @@ const mainStyle: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   padding: "2rem",
-  background: "linear-gradient(135deg, #020617 0%, #0f172a 100%)"
+  background: "linear-gradient(140deg, #dbeafe 0%, #eff6ff 50%, #e0e7ff 100%)"
 };
 
 const cardStyle: CSSProperties = {
   width: "100%",
   maxWidth: "720px",
-  background: "#0b1120",
-  borderRadius: "16px",
-  padding: "2rem",
-  boxShadow: "0 20px 50px rgba(2, 6, 23, 0.6)",
-  color: "#e2e8f0"
+  background: "#ffffff",
+  borderRadius: "20px",
+  padding: "2.5rem",
+  border: "1px solid #dbeafe",
+  boxShadow: "0 35px 80px rgba(15, 23, 42, 0.15)",
+  color: "#0f1c2e"
 };
 
 const stepsWrapperStyle: CSSProperties = {
@@ -296,8 +297,9 @@ function getStepStyle(isActive: boolean): CSSProperties {
     borderRadius: "8px",
     textAlign: "center",
     fontWeight: 600,
-    background: isActive ? "#38bdf8" : "#1e293b",
-    color: isActive ? "#0b1120" : "#94a3b8"
+    background: isActive ? "#2563eb" : "#e2e8f0",
+    color: isActive ? "#ffffff" : "#475569",
+    boxShadow: isActive ? "0 12px 30px rgba(37, 99, 235, 0.25)" : "none"
   };
 }
 
@@ -316,41 +318,46 @@ const optionLabelStyle: CSSProperties = {
   gap: "0.6rem",
   alignItems: "center",
   padding: "0.6rem 0.9rem",
-  borderRadius: "10px",
-  border: "1px solid #1e293b"
+  borderRadius: "12px",
+  border: "1px solid #c7d7ff",
+  background: "#f8fbff"
 };
 
 const toggleLabelStyle: CSSProperties = {
   display: "flex",
   gap: "0.5rem",
   alignItems: "center",
-  marginBottom: "0.5rem"
+  marginBottom: "0.5rem",
+  color: "#1f2937"
 };
 
 const inputStyle: CSSProperties = {
-  padding: "0.8rem 1rem",
-  borderRadius: "8px",
-  border: "1px solid #1f2937",
-  background: "#020617",
-  color: "#e2e8f0"
+  padding: "0.85rem 1rem",
+  borderRadius: "10px",
+  border: "1px solid #c7d7ff",
+  background: "#f8fbff",
+  color: "#0f1c2e",
+  boxShadow: "0 8px 20px rgba(15, 23, 42, 0.08)"
 };
 
 const primaryButtonStyle: CSSProperties = {
   padding: "0.9rem 1.75rem",
-  borderRadius: "10px",
+  borderRadius: "12px",
   border: "none",
-  background: "#38bdf8",
-  color: "#020617",
+  background: "linear-gradient(120deg, #2563eb, #38bdf8)",
+  color: "#ffffff",
   fontWeight: 700,
-  cursor: "pointer"
+  cursor: "pointer",
+  boxShadow: "0 12px 30px rgba(37, 99, 235, 0.25)"
 };
 
 const secondaryButtonStyle: CSSProperties = {
   padding: "0.9rem 1.75rem",
-  borderRadius: "10px",
-  border: "1px solid #1e293b",
-  background: "transparent",
-  color: "#e2e8f0",
+  borderRadius: "12px",
+  border: "1px solid #c7d7ff",
+  background: "#ffffff",
+  color: "#1e293b",
   fontWeight: 600,
-  cursor: "pointer"
+  cursor: "pointer",
+  boxShadow: "0 8px 18px rgba(15, 23, 42, 0.08)"
 };
