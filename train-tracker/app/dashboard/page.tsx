@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 
 type TrainStatus = {
@@ -33,7 +33,19 @@ export default function DashboardPage() {
   const [routeError, setRouteError] = useState("");
   const [isRouteLoading, setIsRouteLoading] = useState(false);
   const [routeOptions, setRouteOptions] = useState<TripOption[] | null>(null);
-  const currentTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const [currentTime, setCurrentTime] = useState("--:--");
+
+  useEffect(() => {
+    const formatter = new Intl.DateTimeFormat("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true
+    });
+    const updateTime = () => setCurrentTime(formatter.format(new Date()));
+    updateTime();
+    const intervalId = window.setInterval(updateTime, 60_000);
+    return () => clearInterval(intervalId);
+  }, []);
 
   const handleSearch = async () => {
     const trimmed = trainNumber.trim();
@@ -49,10 +61,15 @@ export default function DashboardPage() {
 
     try {
       const response = await fetch(`/api/train-status?trainNumber=${encodeURIComponent(trimmed)}`);
+      const data = await response.json().catch(() => null);
+
       if (!response.ok) {
-        throw new Error("Unable to fetch live data, try again");
+        const fallback = data?.message ?? (response.status === 429
+          ? "IRCTC live API is throttling requests. Please try again in a few seconds."
+          : "Unable to fetch live data, try again");
+        throw new Error(fallback);
       }
-      const data = await response.json();
+
       if (!data?.trainNumber) {
         setError(data?.message ?? "Train not found");
         return;
@@ -66,11 +83,11 @@ export default function DashboardPage() {
   };
 
   const handleRouteSearch = async (): Promise<void> => {
-    const from = fromStation.trim().toUpperCase();
-    const to = toStation.trim().toUpperCase();
+    const from = fromStation.trim();
+    const to = toStation.trim();
 
     if (!from || !to) {
-      setRouteError("Enter both departure and destination station codes");
+      setRouteError("Enter both departure and destination stations");
       setRouteOptions(null);
       return;
     }
@@ -89,12 +106,15 @@ export default function DashboardPage() {
       const response = await fetch(
         `/api/find-trains?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
       );
+      const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error("Unable to fetch route options, try again");
+        const fallback = data?.message ?? (response.status === 429
+          ? "IRCTC servers are busy, please retry in a moment."
+          : "Unable to fetch route options, try again");
+        throw new Error(fallback);
       }
 
-      const data = await response.json();
       if (!Array.isArray(data?.options) || data.options.length === 0) {
         setRouteError(data?.message ?? "No direct trains found for this route");
         return;
@@ -263,9 +283,9 @@ export default function DashboardPage() {
                     <input
                       id="fromStation"
                       style={styles.stationInput}
-                      placeholder="e.g. NDLS"
+                      placeholder="City or station code"
                       value={fromStation}
-                      onChange={(event) => setFromStation(event.target.value.toUpperCase())}
+                      onChange={(event) => setFromStation(event.target.value)}
                       disabled={isRouteLoading}
                     />
                   </div>
@@ -282,9 +302,9 @@ export default function DashboardPage() {
                     <input
                       id="toStation"
                       style={styles.stationInput}
-                      placeholder="e.g. BCT"
+                      placeholder="City or station code"
                       value={toStation}
-                      onChange={(event) => setToStation(event.target.value.toUpperCase())}
+                      onChange={(event) => setToStation(event.target.value)}
                       disabled={isRouteLoading}
                     />
                   </div>
@@ -302,7 +322,7 @@ export default function DashboardPage() {
                 </button>
               </div>
               <p style={styles.formNote}>
-                Use official 2-4 letter station codes (example: NDLS, BCT). We highlight direct trains first.
+                Enter any Indian city or station name—we auto-detect the official codes and list every direct train for today.
               </p>
               {routeError && <p style={styles.error}>{routeError}</p>}
             </section>
