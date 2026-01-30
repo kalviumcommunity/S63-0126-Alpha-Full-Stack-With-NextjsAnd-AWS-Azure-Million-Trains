@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { compare } from "bcryptjs";
 import { prisma } from "../../../../lib/prisma";
+import { setSessionCookie } from "../../../../lib/auth-cookie";
 
 export async function POST(request: Request): Promise<NextResponse> {
   try {
@@ -40,7 +41,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    return NextResponse.json({ message: "Login successful." });
+    const response = NextResponse.json({ message: "Login successful." });
+    setSessionCookie(response, user.id);
+    return response;
   } catch (error) {
     console.error("Login error", error);
     return NextResponse.json({ error: "Failed to log in." }, { status: 500 });
