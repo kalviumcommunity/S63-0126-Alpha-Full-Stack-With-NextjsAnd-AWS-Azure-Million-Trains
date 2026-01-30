@@ -3,8 +3,10 @@
 import type { CSSProperties, FormEvent, ReactElement } from "react";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function SignupPage(): ReactElement {
+  const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,6 +36,9 @@ export default function SignupPage(): ReactElement {
         setFullName("");
         setEmail("");
         setPassword("");
+        setTimeout(() => {
+          router.push("/login");
+        }, 600);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
