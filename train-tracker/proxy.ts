@@ -2,7 +2,16 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { AUTH_COOKIE_NAME } from "./lib/auth-constants";
 
-const PUBLIC_PAGES = new Set(["/login", "/signup"]);
+const PUBLIC_PAGES = new Set([
+  "/",
+  "/about",
+  "/contact",
+  "/dashboard",
+  "/faq",
+  "/login",
+  "/routes",
+  "/signup"
+]);
 const AUTH_API_PREFIX = "/api/auth";
 
 function isPublicPath(pathname: string): boolean {
