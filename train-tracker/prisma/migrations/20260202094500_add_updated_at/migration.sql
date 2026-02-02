@@ -1,0 +1,6 @@
+-- Adds automatic updatedAt timestamps for auditability
+ALTER TABLE "User"
+ADD COLUMN "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE "ContactRequest"
+ADD COLUMN "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
