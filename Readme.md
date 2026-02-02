@@ -56,22 +56,73 @@ After each build, run `npx next start` (or deploy to your platform) with the sam
 
 ## Prisma database workflow
 
-1. Create a `DATABASE_URL` entry in every `.env.*` file pointing at the right Postgres instance.
-2. Apply the latest schema (which now tracks `updatedAt` on both `User` and `ContactRequest`) with:
+### 1. Configure `DATABASE_URL`
+- Add the connection string (include `?sslmode=require` for Supabase) to whichever `.env.*` file matches the command you are running. Prisma itself reads `.env` by default, so export `DATABASE_URL` manually or create a `.env` shim when working locally.
+- Example local URL: `postgresql://postgres:postgres@localhost:5432/traintracker`. Example Supabase URL: `postgresql://postgres:<password>@<host>:5432/postgres?sslmode=require`.
 
-	```bash
-	npx prisma migrate dev --name add-updated-at
-	```
+### 2. Create and apply migrations
+Run the migration suite anytime the schema changes. The three existing steps are:
 
-3. Regenerate the Prisma Client right after any schema changes:
+```bash
+npx prisma migrate dev --name init_schema
+npx prisma migrate dev --name contact_request
+npx prisma migrate dev --name add-updated-at
+```
 
-	```bash
-	npx prisma generate
-	```
+`add-updated-at` introduces the `updatedAt @updatedAt` columns on both `User` and `ContactRequest`, enabling basic audit tracking.
 
-4. (Optional) Inspect data locally with `npx prisma studio` before wiring up API routes.
+### 3. Modify or extend the schema
+- Change `prisma/schema.prisma` (for example, add a `Project` model) and generate a new migration with `npx prisma migrate dev --name add_project_table`.
+- Use `--create-only` if reviewers should inspect the SQL before it is applied to shared databases.
+- After every migration, refresh the Prisma Client so TypeScript picks up the latest types: `npx prisma generate`.
 
-Commit the `prisma/migrations/**` directory that this command creates so every environment can bootstrap the same structure without manual SQL.
+### 4. Rollback or reset safely
+- Local reset: `npx prisma migrate reset` drops the database, reapplies all migrations, and optionally reruns the seed script.
+- Targeted rollback: `npx prisma migrate resolve --rolled-back <migration_folder>` marks a migration as rolled back without deleting files (useful when a production deploy fails and you revert manually).
+- Always test destructive changes against staging first and keep cloud snapshots (Supabase backups, AWS RDS snapshots, etc.) before running irreversible migrations in production.
+
+### 5. Seed deterministic data
+- `prisma/seed.ts` uses `ts-node --esm` to insert two demo users plus two contact requests in an idempotent fashion (fixed IDs + `upsert`).
+- Invoke it directly or let `prisma migrate reset` call it automatically:
+
+```bash
+npx prisma db seed
+```
+
+Running the seed multiple times simply updates the existing rows, so you get predictable fixtures for manual testing.
+
+### 6. Verify via Prisma Studio
+
+```bash
+npx prisma studio
+```
+
+This opens a browser UI where you can confirm that migrations created the expected columns and that the seed data shows up without duplicates.
+
+### Example terminal session
+
+```bash
+$ npx prisma migrate dev --name add-updated-at
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "postgres" ...
+Applying migration `20260202094500_add_updated_at`
+The following migration(s) have been applied:
+  20260202094500_add_updated_at
+
+$ npx prisma db seed
+Environment variables loaded from .env.local
+Running seed command `ts-node --esm prisma/seed.ts` ...
+Seed data inserted successfully
+``` 
+
+Capture the successful command output (or screenshots) when recording your walkthrough so reviewers can see the migrations and seeding in action.
+
+### Production reflection
+- Keep automated backups enabled for every managed Postgres instance and practice restoring them.
+- Promote schema changes through dev → staging → production so you can validate both the migration SQL and the seed script against production-sized data before the real release train departs.
+- Restrict who can run `prisma migrate reset` against production (ideally never) and gate deployment pipelines so migrations happen inside controlled CI/CD jobs, not on laptops.
+
+Commit the entire `prisma/migrations/**` directory so teammates can recreate the same database shape without copying SQL manually.
 
 ### Routes command center
 
