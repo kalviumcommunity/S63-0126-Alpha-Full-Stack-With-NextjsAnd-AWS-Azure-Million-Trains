@@ -54,6 +54,25 @@ npm run build              # alias for production build
 
 After each build, run `npx next start` (or deploy to your platform) with the same environment variables present at runtime. CI pipelines should fail fast if any variable is missing, so wire up your workflow to check for required keys before running the commands.
 
+## Prisma database workflow
+
+1. Create a `DATABASE_URL` entry in every `.env.*` file pointing at the right Postgres instance.
+2. Apply the latest schema (which now tracks `updatedAt` on both `User` and `ContactRequest`) with:
+
+	```bash
+	npx prisma migrate dev --name add-updated-at
+	```
+
+3. Regenerate the Prisma Client right after any schema changes:
+
+	```bash
+	npx prisma generate
+	```
+
+4. (Optional) Inspect data locally with `npx prisma studio` before wiring up API routes.
+
+Commit the `prisma/migrations/**` directory that this command creates so every environment can bootstrap the same structure without manual SQL.
+
 ### Routes command center
 
 Visit `/routes` once the dev server is running to try every RapidAPI feature without exposing your key in the browser. Each widget talks to a dedicated Next.js API route:

@@ -3,7 +3,6 @@
 import type { ReactElement } from "react";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import styles from "./navbar.module.css";
 
 export default function LogoutButton(): ReactElement {
   const router = useRouter();
@@ -17,13 +16,7 @@ export default function LogoutButton(): ReactElement {
   }
 
   return (
-    <button
-      type="button"
-      className={styles.logoutButton}
-      onClick={handleLogout}
-      disabled={isPending}
-      aria-label="Sign out"
-    >
+    <button type="button" onClick={handleLogout} disabled={isPending} aria-label="Sign out">
       {isPending ? "Signing out..." : "Sign out"}
     </button>
   );

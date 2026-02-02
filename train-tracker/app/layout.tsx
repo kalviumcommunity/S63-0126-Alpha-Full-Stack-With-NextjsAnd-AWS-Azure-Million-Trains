@@ -1,6 +1,5 @@
 import type { ReactElement, ReactNode } from "react";
 import type { Metadata } from "next";
-import Navbar from "../components/navbar";
 
 export const metadata: Metadata = {
   title: "Millions of Local Trains",
@@ -23,8 +22,7 @@ export default function RootLayout({
           fontFamily: "'Space Grotesk', 'Segoe UI', system-ui, sans-serif"
         }}
       >
-        <Navbar />
-        <div style={{ minHeight: "calc(100vh - 64px)" }}>{children}</div>
+        <div style={{ minHeight: "100vh" }}>{children}</div>
       </body>
     </html>
   );
