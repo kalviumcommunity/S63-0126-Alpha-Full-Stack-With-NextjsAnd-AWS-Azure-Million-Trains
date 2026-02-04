@@ -1,5 +1,6 @@
 import type { ReactElement, ReactNode } from "react";
 import type { Metadata } from "next";
+import Navbar from "./components/Navbar";
 
 export const metadata: Metadata = {
   title: "Millions of Local Trains",
@@ -22,6 +23,7 @@ export default function RootLayout({
           fontFamily: "'Space Grotesk', 'Segoe UI', system-ui, sans-serif"
         }}
       >
+        <Navbar />
         {children}
       </body>
     </html>

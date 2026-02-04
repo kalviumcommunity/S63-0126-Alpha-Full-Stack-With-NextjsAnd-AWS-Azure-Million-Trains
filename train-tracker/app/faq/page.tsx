@@ -127,7 +127,7 @@ export default function FaqPage(): ReactElement {
         }}
       >
         <header style={{ textAlign: "center", marginBottom: "2.5rem" }}>
-          <p style={{ textTransform: "uppercase", letterSpacing: "0.2em", color: "#2563eb", fontWeight: 600 }}>
+          <p style={{ textTransform: "uppercase", letterSpacing: "0.2em", color: "#0f3a7d", fontWeight: 600 }}>
             Need Answers?
           </p>
           <h1 style={{ fontSize: "2.5rem", margin: "0.5rem 0 1rem" }}>Frequently Asked Questions</h1>
@@ -153,8 +153,8 @@ export default function FaqPage(): ReactElement {
                 style={{
                   borderRadius: "18px",
                   border: "1px solid",
-                  borderColor: isActive ? "#2563eb" : "#c7d7ff",
-                  background: isActive ? "linear-gradient(120deg, #2563eb, #38bdf8)" : "#f8fbff",
+                  borderColor: isActive ? "#0f3a7d" : "#c7d7ff",
+                  background: isActive ? "linear-gradient(120deg, #0f3a7d, #1e5ba8)" : "#f8fbff",
                   color: isActive ? "#ffffff" : "#1f2937",
                   padding: "1rem 1.2rem",
                   textAlign: "left",
@@ -186,7 +186,7 @@ export default function FaqPage(): ReactElement {
           }}
         >
           <div>
-            <p style={{ color: "#2563eb", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.15em", margin: 0 }}>
+            <p style={{ color: "#0f3a7d", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.15em", margin: 0 }}>
               {currentCategory.label}
             </p>
             <h2 style={{ margin: "0.35rem 0 0", fontSize: "1.5rem" }}>Top questions</h2>

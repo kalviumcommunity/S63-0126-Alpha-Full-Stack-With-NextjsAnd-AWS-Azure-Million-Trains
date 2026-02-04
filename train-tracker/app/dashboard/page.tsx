@@ -139,6 +139,7 @@ export default function DashboardPage() {
   return (
     <main style={styles.page} className="dashboard-root">
       <style>{`
+        html, body { overflow: hidden; margin: 0; padding: 0; }
         @keyframes skeletonShimmer {
           0% { background-position: 200% 0; }
           100% { background-position: -200% 0; }
@@ -149,13 +150,17 @@ export default function DashboardPage() {
         .dashboard-surface {
           background: #ffffff;
           transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+          word-wrap: break-word;
+          overflow-wrap: break-word;
         }
+        input, textarea { word-wrap: break-word; }
         @media (min-width: 900px) {
           .dashboard-root { justify-content: flex-start; align-items: flex-start; }
           .dashboard-surface { margin-left: 1.5rem; }
           .surface-grid { grid-template-columns: minmax(280px, 340px) auto; gap: 1.25rem; align-items: center; }
         }
       `}</style>
+      <section style={styles.hero}>
       <BackgroundMedia imageSrc="https://res.cloudinary.com/dbj6ocwoz/image/upload/v1770020660/trn_ldauul.jpg" posterSrc="/dahboard-poster.jpg" />
 
       <section style={styles.surface} className="dashboard-surface">
@@ -479,52 +484,62 @@ export default function DashboardPage() {
 
         </div>
       </section>
+      </section>
     </main>
   );
 }
 
 const styles: Record<string, CSSProperties> = {
   page: {
-    minHeight: "100vh",
-    padding: "2rem 1.5rem 2.5rem",
-    background: "linear-gradient(140deg, #dbeafe 0%, #eff6ff 50%, #e0e7ff 100%)",
+    height: "100vh",
+    padding: "0",
+    background: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)",
     display: "flex",
     alignItems: "flex-start",
-    fontFamily: "'Space Grotesk', 'Segoe UI', system-ui, sans-serif",
-    transition: "padding 200ms ease"
+    fontFamily: "'Segoe UI', 'Helvetica Neue', system-ui, -apple-system, sans-serif",
+    transition: "padding 200ms ease",
+    overflow: "hidden"
+  },
+  hero: { 
+    position: "relative",
+    height: "100vh",
+    width: "100%",
+    overflow: "hidden"
   },
   surface: {
-    position: "relative",
-    zIndex: 2,
-    overflow: "visible",
-    width: "400px",
-    maxWidth: "400px",
-    minHeight: "auto",
-    height: "auto",
-    alignSelf: "flex-start",
-    background: "white",
-    borderRadius: "20px",
-    border: "none",
-    boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-    padding: "0",
-    display: "block",
-    backdropFilter: "none",
-    WebkitBackdropFilter: "none",
-    transition: "box-shadow 300ms ease"
-  },
+    position: "absolute",
+    zIndex: 10,
+    top: "0",
+    left: "0",
+    width: "50%",
+  maxWidth: "50vw",
+  height: "100vh",
+  background: "#ffffff",
+  borderRadius: "0",
+  border: "none",
+  boxShadow: "none",
+  padding: "0",
+  overflow: "hidden",
+  display: "block"
+},
   surfaceGrid: {
     display: 'grid',
     gridTemplateColumns: '1fr',
-    gap: '1.25rem',
-    alignItems: 'start'
+    gap: '0',
+    alignItems: 'start',
+    height: '100%',
+    width: '100%'
   },
   leftColumn: {
-    width: '100%',
+    width: '50vw',
     display: 'flex',
     flexDirection: 'column',
-    gap: '0'
+    gap: '0',
+    boxSizing: 'border-box',
+    height: '90vh',
+    overflow: 'hidden'
   },
-  rightColumn: {
+  rightColumn: {    
     padding: '2rem',
     display: 'flex',
     flexDirection: 'column',
@@ -569,24 +584,26 @@ const styles: Record<string, CSSProperties> = {
     gap: "0.75rem",
     marginBottom: "0"
   },
-  headerCard: {
-    background: "#ffffff",
-    borderRadius: "20px 20px 0 0",
-    padding: "1.25rem 1.5rem",
-    marginBottom: "0"
-  },
+ headerCard: {
+  background: "#ffffff",
+  padding: "1.25rem 1.5rem",
+  borderBottom: "1px solid #f1f5f9",
+  flexShrink: 0
+},
+
   navTitle: {
     margin: 0,
-    fontSize: "1.15rem",
+    fontSize: "2rem",
     color: "#0f172a",
-    letterSpacing: "-0.01em",
-    fontWeight: 700
+    letterSpacing: "-0.02em",
+    fontWeight: 800
   },
   navSubtitle: {
-    margin: "0.35rem 0 0",
+    margin: "0.45rem 0 0",
     color: "#64748b",
-    fontSize: "0.8rem",
-    lineHeight: 1.4
+    fontSize: "1.05rem",
+    lineHeight: 1.5,
+    fontWeight: 400
   },
   navMeta: {
     display: "flex",
@@ -594,91 +611,78 @@ const styles: Record<string, CSSProperties> = {
     alignItems: "center"
   },
   languageButton: {
-    borderRadius: "6px",
-    border: "1px solid #e2e8f0",
+    borderRadius: "8px",
+    border: "1.5px solid #e2e8f0",
     background: "#f8fafc",
-    padding: "0.4rem 0.75rem",
+    padding: "0.5rem 0.9rem",
     fontWeight: 600,
     color: "#475569",
     cursor: "pointer",
-    boxShadow: "none",
-    fontSize: "0.8rem"
+    boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
+    fontSize: "0.8rem",
+    transition: "all 150ms ease"
   },
   timeChip: {
-    borderRadius: "6px",
+    borderRadius: "8px",
     background: "#f1f5f9",
-    padding: "0.4rem 0.75rem",
+    padding: "0.5rem 0.9rem",
     display: "flex",
-    gap: "0.4rem",
+    gap: "0.5rem",
     alignItems: "center",
     color: "#475569",
     fontWeight: 600,
-    fontSize: "0.8rem"
+    fontSize: "0.8rem",
+    border: "1px solid #e2e8f0"
   },
-  tabRow: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "0",
-    background: "linear-gradient(135deg, #e91e63 0%, #c2185b 100%)",
-    borderRadius: "0",
-    padding: "0",
-    marginBottom: "0",
-    overflow: "hidden"
-  },
-  tabButton: {
-    borderRadius: "0",
-    border: "none",
-    padding: "0.85rem 1rem",
-    fontWeight: 600,
-    fontSize: "0.9rem",
-    cursor: "pointer",
-    display: "flex",
-    justifyContent: "center",
-    gap: "0.5rem",
-    alignItems: "center",
-    transition: "all 200ms ease",
-    flex: 1,
-    color: "#ffffff",
-    background: "transparent"
-  },
+tabRow: {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  background: " #2563eb",
+  padding: "0",
+  margin: "0",
+  flexShrink: 0
+},
+ tabButton: {
+  border: "none",
+  padding: "1rem",
+  fontWeight: 700,
+  fontSize: "1.15rem",
+  cursor: "pointer",
+  color: "#ffffff",
+  background: "transparent"
+},
+
   tabMuted: {
     background: "transparent",
     border: "none",
-    color: "rgba(255, 255, 255, 0.7)"
+    color: "rgba(255, 255, 255, 0.75)"
   },
-  tabActive: {
-    background: "#ffffff",
-    color: "#e91e63",
-    boxShadow: "none",
-    borderRadius: "0",
-    fontWeight: 700,
-    position: "relative"
-  },
-  formCard: {
-    width: '100%',
-    background: "#ffffff",
-    borderRadius: "0 0 20px 20px",
-    border: "none",
-    padding: "1.25rem 1.5rem 1.5rem",
-    boxSizing: "border-box",
-    boxShadow: "none",
-    display: "grid",
-    gap: "1rem",
-    marginBottom: "1rem"
-  },
-  button: {
-    padding: "0.75rem 1.25rem",
-    borderRadius: "10px",
-    border: "none",
-    background: "linear-gradient(135deg, #e91e63 0%, #c2185b 100%)",
-    color: "#ffffff",
-    fontWeight: 700,
-    cursor: "pointer",
-    boxShadow: "0 4px 12px rgba(233, 30, 99, 0.3)",
-    transition: "transform 150ms ease, opacity 150ms ease, box-shadow 150ms ease",
-    fontSize: "0.95rem",
-    letterSpacing: "0.01em"
-  },
+tabActive: {
+  background: "#ffffff",
+  color: " #2563eb",
+  fontWeight: 800,
+  borderRadius: "0",
+},
+formCard: {
+  background: "#ffffff",
+  padding: "1.25rem 1.5rem 1.5rem",
+  display: "grid",
+  gap: "1rem",
+  borderTop: "1px solid #f1f5f9",
+  flex: "1",
+  gridAutoRows: "max-content",
+  overflowY: "auto"
+},
+button: {
+  padding: "0.85rem 1.25rem",
+  borderRadius: "12px",
+  border: "none",
+    background: "linear-gradient(135deg,  #0f3a7d,  #0a2453)",
+  color: "#ffffff",
+  fontWeight: 800,
+  cursor: "pointer",
+  boxShadow: "0 6px 18px rgba(37,99,235,0.35)"
+},
   buttonDisabled: {
     opacity: 0.6,
     cursor: "not-allowed",
@@ -741,18 +745,18 @@ const styles: Record<string, CSSProperties> = {
   eyebrow: {
     textTransform: "uppercase",
     letterSpacing: "0.15em",
-    color: "#2563eb",
+    color: "#0f3a7d",
     margin: 0,
-    fontSize: "0.65rem",
+    fontSize: "0.75rem",
     fontWeight: 600,
     marginBottom: "0.25rem"
   },
   formTitle: {
     margin: "0",
-    fontSize: "1.1rem",
+    fontSize: "1.65rem",
     color: "#0f172a",
     lineHeight: 1.3,
-    fontWeight: 700
+    fontWeight: 800
   },
   formHelper: {
     background: "#f8fafc",
@@ -776,11 +780,11 @@ const styles: Record<string, CSSProperties> = {
     minWidth: 0
   },
   fieldLabel: {
-    fontWeight: 600,
+    fontWeight: 700,
     color: "#0f172a",
     margin: 0,
     fontSize: "0.85rem",
-    letterSpacing: "-0.01em"
+    letterSpacing: "0.01em"
   },
   inputShell: {
     width: '100%',
@@ -800,11 +804,14 @@ const styles: Record<string, CSSProperties> = {
     flex: 1,
     border: "none",
     background: "transparent",
-    padding: "0.5rem 0",
-    fontSize: "0.9rem",
+    padding: "0.4rem 0",
+    fontSize: "1.05rem",
     outline: "none",
     color: "#0f172a",
-    minWidth: 0
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap"
   },
   stationFields: {
     display: "grid",
@@ -817,23 +824,26 @@ const styles: Record<string, CSSProperties> = {
     flex: 1,
     border: "none",
     background: "transparent",
-    padding: "0.5rem 0",
-    fontSize: "0.9rem",
+    padding: "0.4rem 0",
+    fontSize: "1.05rem",
     outline: "none",
     color: "#0f172a",
     fontWeight: 500,
-    minWidth: 0
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap"
   },
   stationFieldsColumn: {
     display: "flex",
     flexDirection: "column",
-    gap: "1rem",
+    gap: "1.25rem",
     width: "100%"
   },
   fieldRow: {
     display: "grid",
     gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
-    gap: "0.75rem",
+    gap: "1rem",
     alignItems: "end",
     width: "100%",
     minWidth: 0
@@ -841,7 +851,7 @@ const styles: Record<string, CSSProperties> = {
   dateTimeRow: {
     display: "grid",
     gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
-    gap: "0.75rem",
+    gap: "1rem",
     width: "100%",
     minWidth: 0
   },
@@ -864,15 +874,16 @@ const styles: Record<string, CSSProperties> = {
   },
 
   resultCard: {
-    background: "#0f172a",
+    background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
     color: "#e2e8f0",
-    borderRadius: "20px",
-    padding: "1.25rem",
-    boxShadow: "0 8px 24px rgba(15, 23, 42, 0.2)",
+    borderRadius: "16px",
+    padding: "1.5rem",
+    boxShadow: "0 12px 32px rgba(15, 23, 42, 0.25)",
     display: "grid",
-    gap: "0.9rem",
+    gap: "1rem",
     width: "100%",
-    boxSizing: "border-box"
+    boxSizing: "border-box",
+    border: "1px solid #334155"
   },
   resultHeader: {
     display: "flex",
@@ -883,14 +894,20 @@ const styles: Record<string, CSSProperties> = {
   resultLabel: {
     textTransform: "uppercase",
     letterSpacing: "0.15em",
-    fontSize: "0.8rem",
+    fontSize: "0.75rem",
     color: "#7dd3fc",
-    margin: 0
+    margin: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap"
   },
   resultValue: {
-    fontSize: "1.2rem",
-    margin: "0.35rem 0 0",
-    fontWeight: 700
+    fontSize: "1.3rem",
+    margin: "0.25rem 0 0",
+    fontWeight: 700,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap"
   },
   resultGrid: {
     display: "grid",
@@ -901,13 +918,19 @@ const styles: Record<string, CSSProperties> = {
     width: '100%',
     maxWidth: '100%',
     boxSizing: 'border-box',
-    border: "2px dashed #e2e8f0",
+    border: "2px dashed #cbd5e1",
     borderRadius: "16px",
     padding: "2.5rem 1.75rem",
-    textAlign: "left",
-    color: "#475569",
-    background: "linear-gradient(135deg, #fefefe 0%, #f8fafc 100%)",
-    marginTop: "0"
+    textAlign: "center",
+    color: "#64748b",
+    background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+    marginTop: "0",
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: "200px"
   },
   placeholderTitle: {
     margin: 0,
@@ -933,11 +956,11 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: "16px",
     border: "1.5px solid #e2e8f0",
     background: "#ffffff",
-    padding: "1.2rem",
+    padding: "1.25rem",
     boxShadow: "0 4px 12px rgba(15, 23, 42, 0.06)",
     display: "grid",
-    gap: "0.75rem",
-    transition: "transform 150ms ease, box-shadow 150ms ease"
+    gap: "0.85rem",
+    transition: "transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease"
   },
   optionHeader: {
     display: "flex",
@@ -957,8 +980,12 @@ const styles: Record<string, CSSProperties> = {
     gap: "0.75rem"
   },
   optionValue: {
-    margin: "0.35rem 0 0",
+    margin: "0.25rem 0 0",
     color: "#0f172a",
-    fontWeight: 600
+    fontWeight: 600,
+    fontSize: "0.9rem",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap"
   }
 };

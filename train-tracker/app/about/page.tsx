@@ -148,7 +148,7 @@ export default function AboutPage(): ReactElement {
         .eyebrow {
           text-transform: uppercase;
           letter-spacing: 0.3em;
-          color: #2563eb;
+          color: #0f3a7d;
           font-weight: 600;
           margin: 0 0 0.8rem;
         }
@@ -176,7 +176,7 @@ export default function AboutPage(): ReactElement {
           transition: transform 180ms ease, box-shadow 180ms ease;
         }
         .primary-btn {
-          background: linear-gradient(120deg, #2563eb, #38bdf8);
+          background: linear-gradient(120deg, #0f3a7d, #1e5ba8);
           color: #ffffff;
           box-shadow: 0 18px 40px rgba(37, 99, 235, 0.25);
         }
@@ -221,7 +221,7 @@ export default function AboutPage(): ReactElement {
           box-shadow: 0 28px 65px rgba(15, 23, 42, 0.15);
         }
         .gradient-panel {
-          background: linear-gradient(120deg, #2563eb, #38bdf8);
+          background: linear-gradient(120deg, #0f3a7d, #1e5ba8);
           border-radius: 30px;
           color: #ffffff;
           padding: 2.2rem;
@@ -248,7 +248,7 @@ export default function AboutPage(): ReactElement {
         }
         .trust-card span {
           font-size: 1.35rem;
-          color: #2563eb;
+          color: #0f3a7d;
           font-weight: 700;
         }
         .cta-panel {

@@ -96,7 +96,7 @@ export default function LoginPage(): ReactElement {
               padding: "0.85rem 1.5rem",
               borderRadius: "8px",
               border: "none",
-              background: "linear-gradient(120deg, #2563eb, #38bdf8)",
+              background: "linear-gradient(120deg, #0f3a7d, #1e5ba8)",
               color: "#ffffff",
               fontWeight: 600,
               cursor: isSubmitting ? "not-allowed" : "pointer",
