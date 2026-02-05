@@ -23,8 +23,12 @@ export default function RootLayout({
           fontFamily: "'Space Grotesk', 'Segoe UI', system-ui, sans-serif"
         }}
       >
+ ui-update
         <Navbar />
         {children}
+
+        <div style={{ minHeight: "100vh" }}>{children}</div>
+ main
       </body>
     </html>
   );

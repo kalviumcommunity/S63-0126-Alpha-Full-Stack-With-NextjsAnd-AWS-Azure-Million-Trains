@@ -1,15 +1,26 @@
 'use client';
 
 import type { CSSProperties, FormEvent, ReactElement } from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginPage(): ReactElement {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const nextDestination = useMemo(() => {
+    const target = searchParams.get("next");
+    if (!target || !target.startsWith("/") || target.startsWith("//")) {
+      return "/routes";
+    }
+    return target;
+  }, [searchParams]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -29,7 +40,10 @@ export default function LoginPage(): ReactElement {
       if (!response.ok) {
         setError(payload?.error ?? "Failed to log in.");
       } else {
-        setStatus("Logged in successfully.");
+        setStatus("Logged in successfully. Redirecting...");
+        setTimeout(() => {
+          router.replace(nextDestination);
+        }, 450);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
