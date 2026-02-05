@@ -297,7 +297,7 @@ function getStepStyle(isActive: boolean): CSSProperties {
     borderRadius: "8px",
     textAlign: "center",
     fontWeight: 600,
-    background: isActive ? "#2563eb" : "#e2e8f0",
+    background: isActive ? "#0f3a7d" : "#e2e8f0",
     color: isActive ? "#ffffff" : "#475569",
     boxShadow: isActive ? "0 12px 30px rgba(37, 99, 235, 0.25)" : "none"
   };
@@ -344,7 +344,7 @@ const primaryButtonStyle: CSSProperties = {
   padding: "0.9rem 1.75rem",
   borderRadius: "12px",
   border: "none",
-  background: "linear-gradient(120deg, #2563eb, #38bdf8)",
+  background: "linear-gradient(120deg, #0f3a7d, #1e5ba8)",
   color: "#ffffff",
   fontWeight: 700,
   cursor: "pointer",
