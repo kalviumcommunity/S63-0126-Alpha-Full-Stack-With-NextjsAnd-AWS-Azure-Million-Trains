@@ -6,19 +6,24 @@ export default function BackgroundMedia({
   videoSrc,
   posterSrc,
   imageSrc,
+  fallbackImageSrc,
 }: {
   videoSrc?: string;
   posterSrc?: string;
   imageSrc?: string;
+  fallbackImageSrc?: string;
 }) {
+  const [videoFailed, setVideoFailed] = React.useState(false);
+  const resolvedImageSrc = imageSrc ?? (videoFailed ? fallbackImageSrc : undefined);
+
   return (
     <div
       aria-hidden
       style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" }}
     >
-      {imageSrc ? (
+      {resolvedImageSrc ? (
         <img
-          src={imageSrc}
+          src={resolvedImageSrc}
           alt=""
           onError={(e) => {
             const el = e.currentTarget as HTMLImageElement;
@@ -36,7 +41,6 @@ export default function BackgroundMedia({
         />
       ) : (
         <video
-          src={videoSrc}
           poster={posterSrc}
           autoPlay
           muted
@@ -44,21 +48,10 @@ export default function BackgroundMedia({
           playsInline
           preload="metadata"
           onError={(e) => {
+            setVideoFailed(true);
             const v = e.currentTarget as HTMLVideoElement;
-            try {
-              const srcAttr = v.getAttribute('src') || '';
-              // If a custom named file isn't found, fall back to a known local asset
-              if (!srcAttr.endsWith('/Video-1.mp4') && srcAttr !== '/Video-1.mp4') {
-                v.src = '/Video-1.mp4';
-                console.warn('BackgroundMedia: primary video failed, falling back to /Video-1.mp4');
-                return;
-              }
-            } catch (err) {
-              // ignore
-            }
-            // final fallback: hide the video so the underlying surface gradient/poster shows
-            v.style.display = 'none';
-            console.warn('BackgroundMedia: video unavailable, hiding element');
+            v.style.display = "none";
+            console.warn("BackgroundMedia: video unavailable, falling back to image");
           }}
           style={{
             width: "100%",
@@ -68,7 +61,10 @@ export default function BackgroundMedia({
             filter: "brightness(0.52) saturate(1.02) contrast(0.94)",
             transform: "translateZ(0)",
           }}
-        />
+        >
+          {videoSrc && <source src={videoSrc} type="video/mp4" />}
+          <source src="/Video-1.mp4" type="video/mp4" />
+        </video>
       )}
 
       {/* soft overlay to keep content readable */}

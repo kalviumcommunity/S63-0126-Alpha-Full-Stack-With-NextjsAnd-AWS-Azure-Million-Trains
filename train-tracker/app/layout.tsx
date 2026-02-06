@@ -1,6 +1,6 @@
 import type { ReactElement, ReactNode } from "react";
 import type { Metadata } from "next";
-import Navbar from "./components/Navbar";
+import HomeOnlyNavbar from "./components/HomeOnlyNavbar.client";
 
 export const metadata: Metadata = {
   title: "Millions of Local Trains",
@@ -19,16 +19,12 @@ export default function RootLayout({
           minHeight: "100vh",
           margin: 0,
           background: "linear-gradient(145deg, #dbeafe 0%, #f8fbff 60%, #e0e7ff 100%)",
-          color: "#0f1c2e",
+          color: "#096cf6",
           fontFamily: "'Space Grotesk', 'Segoe UI', system-ui, sans-serif"
         }}
       >
- ui-update
-        <Navbar />
-        {children}
-
+        <HomeOnlyNavbar />
         <div style={{ minHeight: "100vh" }}>{children}</div>
- main
       </body>
     </html>
   );

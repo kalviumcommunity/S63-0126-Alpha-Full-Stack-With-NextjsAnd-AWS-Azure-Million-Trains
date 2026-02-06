@@ -7,28 +7,139 @@ import HeroVideo from './components/HeroVideo.client';
 export default function HomePage() {
   return (
     <div style={styles.page}>
+      <style jsx>{`
+        /* From Uiverse.io by ashwin_5681 */
+        .card {
+          width: 100%;
+          height: 100%;
+          padding: 15px;
+          border: 1px solid #ccc;
+          border-radius: 18px;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+          background: linear-gradient(135deg, #2563eb 0%, #93c5fd 100%);
+          color: #ffffff;
+          text-align: center;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 0.6rem;
+        }
+
+        .card p {
+          font-size: 15px;
+          color: #ffffff;
+          margin: 0;
+          line-height: 1.35;
+        }
+
+        .card-title {
+          font-size: 16px;
+          font-weight: 700;
+        }
+
+        .slider {
+          width: 100%;
+          height: var(--height);
+          overflow: hidden;
+          mask-image: linear-gradient(to right, transparent, #000 10% 90%, transparent);
+        }
+
+        .slider .list {
+          display: flex;
+          width: 100%;
+          min-width: calc((var(--width) + var(--gap)) * var(--quantity));
+          position: relative;
+        }
+
+        .slider .list .item {
+          width: var(--width);
+          height: var(--height);
+          position: absolute;
+          left: calc(100% + var(--gap));
+          animation: autoRun 10s linear infinite;
+          transition: filter 0.5s;
+          animation-delay: calc(
+            (10s / var(--quantity)) * (var(--position) - 1) - 10s
+          ) !important;
+        }
+
+        .slider .list .item img {
+          width: 100%;
+        }
+
+        @keyframes autoRun {
+          from {
+            left: calc(100% + var(--gap));
+          }
+          to {
+            left: calc((var(--width) + var(--gap)) * -1);
+          }
+        }
+
+        .slider:hover .item {
+          animation-play-state: paused !important;
+          filter: grayscale(1);
+        }
+
+        .slider .item:hover {
+          filter: grayscale(0);
+        }
+
+        .slider[reverse="true"] .item {
+          animation: reversePlay 10s linear infinite;
+        }
+
+        @keyframes reversePlay {
+          from {
+            left: calc((var(--width) + var(--gap)) * -1);
+          }
+          to {
+            left: calc(100% + var(--gap));
+          }
+        }
+
+        .feature-card {
+          transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+          will-change: transform;
+        }
+
+        .feature-card:hover {
+          transform: translateY(-6px) scale(1.02);
+          border-color: rgba(15, 58, 125, 0.35);
+          box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+        }
+
+        .feature-card:hover .feature-icon {
+          transform: translateY(-2px) scale(1.05);
+        }
+
+        .feature-icon {
+          transition: transform 200ms ease;
+        }
+
+        .step-card {
+          transition: transform 220ms ease, box-shadow 220ms ease, background 220ms ease;
+          will-change: transform;
+        }
+
+        .step-card:hover {
+          transform: translateY(-4px) rotateZ(-0.6deg);
+          background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 100%);
+          box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
+        }
+
+        .step-card:hover .step-number {
+          transform: scale(1.06);
+          box-shadow: 0 10px 20px rgba(37, 99, 235, 0.35);
+        }
+
+        .step-number {
+          transition: transform 200ms ease, box-shadow 200ms ease;
+        }
+      `}</style>
       {/* Hero Section with Video Background */}
       <HeroVideo />
-      
-      {/* Hero Content Overlay */}
-      <section style={styles.heroOverlay}>
-        <div style={styles.heroContent}>
-          <h1 style={styles.heroTitle}>
-            Real-Time Train Tracking Made Simple
-          </h1>
-          <p style={styles.heroSubtitle}>
-            Get live delay updates, platform information, and track any train across India instantly.
-          </p>
-          <div style={styles.heroButtons}>
-            <Link href="/dashboard" style={styles.heroPrimaryBtn}>
-              Start Tracking
-            </Link>
-            <Link href="/about" style={styles.heroSecondaryBtn}>
-              Learn More
-            </Link>
-          </div>
-        </div>
-      </section>
 
       {/* Features Section */}
       <section style={styles.features}>
@@ -57,8 +168,10 @@ export default function HomePage() {
                 description: 'Use TrainTracker on any device - desktop, tablet, or smartphone',
               },
             ].map((feature, index) => (
-              <div key={index} style={styles.featureCard}>
-                <div style={styles.featureIcon}>{feature.icon}</div>
+              <div key={index} style={styles.featureCard} className="feature-card">
+                <div style={styles.featureIcon} className="feature-icon">
+                  {feature.icon}
+                </div>
                 <h3 style={styles.featureTitle}>{feature.title}</h3>
                 <p style={styles.featureDescription}>{feature.description}</p>
               </div>
@@ -67,10 +180,95 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section style={styles.carouselSection}>
+        <div
+          className="slider"
+          style={{
+            ['--width' as keyof CSSProperties]: '200px',
+            ['--height' as keyof CSSProperties]: '200px',
+            ['--gap' as keyof CSSProperties]: '16px',
+            ['--quantity' as keyof CSSProperties]: 9,
+          }}
+        >
+          <div className="list">
+            <div className="item" style={{ ['--position' as keyof CSSProperties]: 1 }}>
+              <div className="card">
+                <p className="card-title">Real-time Seat Availability</p>
+                <p className="card-text">Instantly check current berth or seat counts across different travel classes.</p>
+              </div>
+            </div>
+            <div className="item" style={{ ['--position' as keyof CSSProperties]: 2 }}>
+              <div className="card">
+                <p className="card-title">Live Train Tracking</p>
+                <p className="card-text">
+                  Monitor the exact geographic location and delay status of any active train in the network.
+                </p>
+              </div>
+            </div>
+            <div className="item" style={{ ['--position' as keyof CSSProperties]: 3 }}>
+              <div className="card">
+                <p className="card-title">PNR Status Inquiries</p>
+                <p className="card-text">
+                  Provide passengers with instant updates on their booking confirmation and coach assignments.
+                </p>
+              </div>
+            </div>
+            <div className="item" style={{ ['--position' as keyof CSSProperties]: 4 }}>
+              <div className="card">
+                <p className="card-title">Dynamic Route Planning</p>
+                <p className="card-text">
+                  A smart search engine that suggests the best train connections between any two stations.
+                </p>
+              </div>
+            </div>
+            <div className="item" style={{ ['--position' as keyof CSSProperties]: 5 }}>
+              <div className="card">
+                <p className="card-title">Integrated Payment Gateway</p>
+                <p className="card-text">
+                  Secure processing of transactions via credit cards, digital wallets, and UPI.
+                </p>
+              </div>
+            </div>
+            <div className="item" style={{ ['--position' as keyof CSSProperties]: 6 }}>
+              <div className="card">
+                <p className="card-title">Automated Refund Processing</p>
+                <p className="card-text">
+                  A streamlined system for calculating and issuing refunds upon ticket cancellation.
+                </p>
+              </div>
+            </div>
+            <div className="item" style={{ ['--position' as keyof CSSProperties]: 7 }}>
+              <div className="card">
+                <p className="card-title">User Profile Dashboard</p>
+                <p className="card-text">
+                  A centralized hub for managing booking history, saved passengers, and loyalty points.
+                </p>
+              </div>
+            </div>
+            <div className="item" style={{ ['--position' as keyof CSSProperties]: 8 }}>
+              <div className="card">
+                <p className="card-title">Station Information & Maps</p>
+                <p className="card-text">
+                  Detailed guides for station facilities, platform layouts, and local transit links.
+                </p>
+              </div>
+            </div>
+            <div className="item" style={{ ['--position' as keyof CSSProperties]: 9 }}>
+              <div className="card">
+                <p className="card-title">Alerts and Notifications</p>
+                <p className="card-text">
+                  Automated SMS or push notifications for schedule changes, platform numbers, or booking updates.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* How It Works Section */}
       <section style={styles.howItWorks}>
         <div style={styles.container}>
-          <h2 style={styles.sectionTitle}>How It Works</h2>
+          <h2 style={styles.sectionTitle}>How It Works?</h2>
           <div style={styles.stepsGrid}>
             {[
               {
@@ -89,8 +287,10 @@ export default function HomePage() {
                 description: 'Make informed decisions about your train travel',
               },
             ].map((item, index) => (
-              <div key={index} style={styles.stepCard}>
-                <div style={styles.stepNumber}>{item.step}</div>
+              <div key={index} style={styles.stepCard} className="step-card">
+                <div style={styles.stepNumber} className="step-number">
+                  {item.step}
+                </div>
                 <h3 style={styles.stepTitle}>{item.title}</h3>
                 <p style={styles.stepDescription}>{item.description}</p>
               </div>
@@ -250,6 +450,7 @@ const styles: Record<string, CSSProperties> = {
     textAlign: 'center',
     margin: '0 0 3rem',
     color: '#0f172a',
+    fontFamily: "calibri",
     letterSpacing: '-0.02em',
   },
 
@@ -289,6 +490,14 @@ const styles: Record<string, CSSProperties> = {
   },
 
   howItWorks: {
+    padding: '5rem 1.5rem',
+    background: '#ffffff',
+  },
+
+  carouselSection: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: '5rem 1.5rem',
     background: '#ffffff',
   },
@@ -349,7 +558,7 @@ const styles: Record<string, CSSProperties> = {
 
   ctaTitle: {
     fontSize: '2rem',
-    fontWeight: 800,
+    fontWeight: 500,
     margin: '0 0 1rem',
     letterSpacing: '-0.02em',
   },
@@ -443,4 +652,5 @@ const styles: Record<string, CSSProperties> = {
     color: 'rgba(255, 255, 255, 0.5)',
     margin: 0,
   },
+  
 };

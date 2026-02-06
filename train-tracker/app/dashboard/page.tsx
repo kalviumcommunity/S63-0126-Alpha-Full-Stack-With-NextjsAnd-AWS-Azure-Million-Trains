@@ -157,11 +157,15 @@ export default function DashboardPage() {
         @media (min-width: 900px) {
           .dashboard-root { justify-content: flex-start; align-items: flex-start; }
           .dashboard-surface { margin-left: 1.5rem; }
-          .surface-grid { grid-template-columns: minmax(280px, 340px) auto; gap: 1.25rem; align-items: center; }
+          .surface-grid { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; align-items: center; }
         }
       `}</style>
       <section style={styles.hero}>
-      <BackgroundMedia imageSrc="https://res.cloudinary.com/dbj6ocwoz/image/upload/v1770020660/trn_ldauul.jpg" posterSrc="/dahboard-poster.jpg" />
+      <BackgroundMedia
+        videoSrc="/dashboard.mp4"
+        posterSrc="/dashboard-poster.jpg"
+        fallbackImageSrc="https://res.cloudinary.com/dbj6ocwoz/image/upload/v1770020660/trn_ldauul.jpg"
+      />
 
       <section style={styles.surface} className="dashboard-surface">
         <div className="surface-grid" style={{ position: 'relative', zIndex: 2 }}>
@@ -509,13 +513,13 @@ const styles: Record<string, CSSProperties> = {
   surface: {
     position: "absolute",
     zIndex: 10,
-    top: "0",
-    left: "0",
-    width: "50%",
-  maxWidth: "50vw",
-  height: "100vh",
+    top: "4vh",
+    left: "3vw",
+    width: "42%",
+  maxWidth: "42vw",
+  height: "90vh",
   background: "#ffffff",
-  borderRadius: "0",
+  borderRadius: "24px",
   border: "none",
   boxShadow: "none",
   padding: "0",
@@ -531,12 +535,12 @@ const styles: Record<string, CSSProperties> = {
     width: '100%'
   },
   leftColumn: {
-    width: '50vw',
+    width: '100%',
     display: 'flex',
     flexDirection: 'column',
     gap: '0',
     boxSizing: 'border-box',
-    height: '90vh',
+    height: '100%',
     overflow: 'hidden'
   },
   rightColumn: {    
@@ -593,15 +597,16 @@ const styles: Record<string, CSSProperties> = {
 
   navTitle: {
     margin: 0,
-    fontSize: "2rem",
+    fontSize: "1.7rem",
     color: "#0f172a",
     letterSpacing: "-0.02em",
-    fontWeight: 800
+    fontWeight: 700,
+    fontFamily: 'inherit'
   },
   navSubtitle: {
     margin: "0.45rem 0 0",
     color: "#64748b",
-    fontSize: "1.05rem",
+    fontSize: "0.95rem",
     lineHeight: 1.5,
     fontWeight: 400
   },
@@ -644,9 +649,9 @@ tabRow: {
 },
  tabButton: {
   border: "none",
-  padding: "1rem",
+  padding: "0.85rem",
   fontWeight: 700,
-  fontSize: "1.15rem",
+  fontSize: "1rem",
   cursor: "pointer",
   color: "#ffffff",
   background: "transparent"
@@ -665,7 +670,7 @@ tabActive: {
 },
 formCard: {
   background: "#ffffff",
-  padding: "1.25rem 1.5rem 1.5rem",
+  padding: "1rem 1.25rem 1.25rem",
   display: "grid",
   gap: "1rem",
   borderTop: "1px solid #f1f5f9",
@@ -740,7 +745,8 @@ button: {
     justifyContent: "space-between",
     alignItems: "center",
     gap: "0.75rem",   
-    marginBottom: "0"
+    marginBottom: "0",
+    flexWrap: "wrap"
   },
   eyebrow: {
     textTransform: "uppercase",
@@ -753,10 +759,12 @@ button: {
   },
   formTitle: {
     margin: "0",
-    fontSize: "1.65rem",
+    fontSize: "1.35rem",
     color: "#0f172a",
     lineHeight: 1.3,
-    fontWeight: 800
+    fontWeight: 600,
+    fontFamily: 'inherit'
+
   },
   formHelper: {
     background: "#f8fafc",
@@ -765,12 +773,12 @@ button: {
     padding: "0.35rem 0.75rem",
     fontSize: "0.75rem",
     color: "#64748b",
-    whiteSpace: "nowrap",
+    whiteSpace: "normal",
     alignSelf: "flex-start"
   },
   formRow: {
     display: "grid",
-    gridTemplateColumns: "1fr auto",
+    gridTemplateColumns: "1fr",
     gap: "1.5rem",
     alignItems: "flex-end"
   },
@@ -805,7 +813,7 @@ button: {
     border: "none",
     background: "transparent",
     padding: "0.4rem 0",
-    fontSize: "1.05rem",
+    fontSize: "1rem",
     outline: "none",
     color: "#0f172a",
     minWidth: 0,
@@ -815,7 +823,7 @@ button: {
   },
   stationFields: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr)) auto repeat(auto-fit, minmax(240px, 1fr)) auto",
+    gridTemplateColumns: "1fr",
     gap: "1.35rem",
     alignItems: "end",
     marginBottom: "1.25rem"
@@ -842,7 +850,7 @@ button: {
   },
   fieldRow: {
     display: "grid",
-    gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
+    gridTemplateColumns: "minmax(0, 1fr)",
     gap: "1rem",
     alignItems: "end",
     width: "100%",
@@ -850,7 +858,7 @@ button: {
   },
   dateTimeRow: {
     display: "grid",
-    gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+    gridTemplateColumns: "minmax(0, 1fr)",
     gap: "1rem",
     width: "100%",
     minWidth: 0
@@ -911,7 +919,7 @@ button: {
   },
   resultGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
     gap: "1.35rem"
   },
   placeholderCard: {

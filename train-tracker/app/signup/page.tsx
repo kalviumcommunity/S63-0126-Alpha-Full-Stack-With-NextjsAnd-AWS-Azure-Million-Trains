@@ -51,11 +51,18 @@ export default function SignupPage(): ReactElement {
     <main
       style={{
         minHeight: "100vh",
+        height: "100vh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: "2rem",
-        background: "linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)"
+        backgroundImage:
+          "linear-gradient(135deg, rgba(219, 234, 254, 0.5) 0%, rgba(239, 246, 255, 0.5) 100%), url('https://t3.ftcdn.net/jpg/04/97/47/54/360_F_497475430_rKgeREiWH96Z7xYa1OAANgiJaVxC6Hln.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        overflow: "hidden",
+        boxSizing: "border-box"
       }}
     >
       <section

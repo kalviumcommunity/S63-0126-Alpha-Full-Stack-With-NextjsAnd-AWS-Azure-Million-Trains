@@ -56,11 +56,18 @@ export default function LoginPage(): ReactElement {
     <main
       style={{
         minHeight: "100vh",
+        height: "100vh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: "2rem",
-        background: "linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)"
+        backgroundImage:
+          "linear-gradient(135deg, rgba(219, 234, 254, 0.5) 0%, rgba(239, 246, 255, 0.5) 100%), url('https://t3.ftcdn.net/jpg/03/53/43/14/360_F_353431434_rCxcfitXJqiR0sXXxtCh80fpMgqa7mIo.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        overflow: "hidden",
+        boxSizing: "border-box"
       }}
     >
       <section

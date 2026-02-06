@@ -22,6 +22,41 @@ export default function Navbar() {
             display: ${isOpen ? 'flex' : 'none'} !important;
           }
         }
+
+        .nav-link {
+          position: relative;
+          display: inline-block;
+        }
+
+        .nav-link::after {
+          content: '';
+          position: absolute;
+          left: 1rem;
+          right: 1rem;
+          bottom: 0.2rem;
+          height: 2px;
+          background: #ffffff;
+          border-radius: 999px;
+          transform: scaleX(0);
+          transform-origin: center;
+          transition: transform 200ms ease;
+        }
+
+        .nav-link:hover::after {
+          transform: scaleX(1);
+        }
+
+        .auth-login:hover {
+          color: #0f1c2e !important;
+          background: #ffffff !important;
+          border-color: #ffffff !important;
+        }
+
+        .auth-signup:hover {
+          filter: brightness(1.12);
+          transform: translateY(-1px);
+          box-shadow: 0 6px 14px rgba(236, 72, 153, 0.35);
+        }
       `}</style>
 
       <div style={styles.container}>
@@ -49,6 +84,7 @@ export default function Navbar() {
               key={item.href}
               href={item.href}
               style={styles.navLink}
+              className="nav-link"
               onClick={() => setIsOpen(false)}
             >
               {item.label}
@@ -57,10 +93,10 @@ export default function Navbar() {
 
           {/* Auth Buttons */}
           <div style={styles.authButtons}>
-            <Link href="/login" style={styles.loginBtn}>
+            <Link href="/login" style={styles.loginBtn} className="auth-login">
               Login
             </Link>
-            <Link href="/signup" style={styles.signupBtn}>
+            <Link href="/signup" style={styles.signupBtn} className="auth-signup">
               Sign Up
             </Link>
           </div>
@@ -72,14 +108,15 @@ export default function Navbar() {
 
 const styles: Record<string, CSSProperties> = {
   navbar: {
-    position: 'sticky',
+    position: 'absolute',
     top: 0,
     zIndex: 1000,
-    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+    background: 'transparent',
     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
     padding: '0',
     width: '100%',
+    
   },
 
   container: {
@@ -95,8 +132,8 @@ const styles: Record<string, CSSProperties> = {
 
   logo: {
     fontSize: '1.5rem',
-    fontWeight: 800,
-    color: '#ffffff',
+    fontWeight: 600,
+    color: '#fbf6f6',
     textDecoration: 'none',
     display: 'flex',
     alignItems: 'center',
@@ -122,7 +159,7 @@ const styles: Record<string, CSSProperties> = {
   hamburgerLine: {
     width: '24px',
     height: '2.5px',
-    background: '#ffffff',
+    background: '#fdf8f8',
     borderRadius: '2px',
     transition: 'all 300ms ease',
   },
@@ -168,13 +205,13 @@ const styles: Record<string, CSSProperties> = {
   },
 
   loginBtn: {
-    color: '#ffffff',
+    color: '#fafbfc',
     textDecoration: 'none',
     fontSize: '0.9rem',
     fontWeight: 600,
     padding: '0.6rem 1.25rem',
     borderRadius: '8px',
-    border: '1.5px solid rgba(255, 255, 255, 0.3)',
+    border: '1.5px solid #f4f5f6',
     background: 'transparent',
     cursor: 'pointer',
     transition: 'all 200ms ease',
