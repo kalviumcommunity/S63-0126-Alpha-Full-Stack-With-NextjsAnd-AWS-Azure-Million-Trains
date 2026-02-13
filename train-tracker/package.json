@@ -3,13 +3,18 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "predev": "npm run prisma:generate",
+    "prebuild": "npm run prisma:generate",
+    "prestart": "npm run prisma:generate",
     "dev": "dotenv -e .env.development -- next dev",
     "build": "dotenv -e .env.production -- next build",
     "build:development": "dotenv -e .env.development -- next build",
     "build:staging": "dotenv -e .env.staging -- next build",
     "build:production": "dotenv -e .env.production -- next build",
     "start": "next start",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prisma:generate": "prisma generate",
+    "postinstall": "npm run prisma:generate"
   },
   "keywords": [],
   "author": "",

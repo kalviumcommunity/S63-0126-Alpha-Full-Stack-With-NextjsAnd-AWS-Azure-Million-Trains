@@ -1,6 +1,19 @@
 import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../lib/prisma";
+
+function mapPrismaError(error: unknown): { status: number; error: string } {
+  if (error instanceof Prisma.PrismaClientInitializationError) {
+    return {
+      status: 503,
+      error:
+        "Database connection failed. Ensure Supabase is reachable and DATABASE_URL is correct."
+    };
+  }
+
+  return { status: 500, error: "Failed to sign up." };
+}
 
 export async function POST(request: Request): Promise<NextResponse> {
   try {
@@ -46,6 +59,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ message: "Signup successful." }, { status: 201 });
   } catch (error) {
     console.error("Signup error", error);
-    return NextResponse.json({ error: "Failed to sign up." }, { status: 500 });
+    const mapped = mapPrismaError(error);
+    return NextResponse.json({ error: mapped.error }, { status: mapped.status });
   }
 }
