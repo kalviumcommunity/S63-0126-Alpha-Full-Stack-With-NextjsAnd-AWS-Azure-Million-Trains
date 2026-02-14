@@ -5,6 +5,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 export default function SignupPage(): ReactElement {
   const router = useRouter();
   const [fullName, setFullName] = useState("");
@@ -27,19 +31,40 @@ export default function SignupPage(): ReactElement {
         body: JSON.stringify({ fullName, email, password })
       });
 
-      const payload = await response.json();
+      const contentType = response.headers.get("content-type") ?? "";
+      const isJson = contentType.includes("application/json");
+      const payload = isJson ? await response.json() : await response.text();
 
       if (!response.ok) {
-        setError(payload?.error ?? "Failed to sign up.");
-      } else {
-        setStatus("Account created successfully. You can log in now.");
-        setFullName("");
-        setEmail("");
-        setPassword("");
-        setTimeout(() => {
-          router.push("/login");
-        }, 600);
+        const fallback =
+          typeof payload === "string" && payload.trim()
+            ? payload.trim()
+            : "Failed to sign up.";
+        const derivedError =
+          isJson && isRecord(payload) && typeof payload.error === "string"
+            ? payload.error
+            : fallback;
+
+        if (!isJson) {
+          console.error("Signup API returned non-JSON error:", payload);
+        }
+
+        setError(derivedError);
+        return;
       }
+
+      const successMessage =
+        isJson && isRecord(payload) && typeof payload.message === "string"
+          ? payload.message
+          : "Account created successfully. You can log in now.";
+
+      setStatus(successMessage);
+      setFullName("");
+      setEmail("");
+      setPassword("");
+      setTimeout(() => {
+        router.push("/login");
+      }, 600);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {

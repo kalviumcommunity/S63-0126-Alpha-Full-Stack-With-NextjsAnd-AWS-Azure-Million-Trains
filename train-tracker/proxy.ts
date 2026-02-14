@@ -61,7 +61,7 @@ export function proxy(request: NextRequest): NextResponse {
   }
 
   if (hasSession && publicPath) {
-    return NextResponse.redirect(new URL("/routes", request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return NextResponse.next();
