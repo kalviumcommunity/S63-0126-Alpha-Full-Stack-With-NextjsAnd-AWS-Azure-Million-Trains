@@ -12,8 +12,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export default function LoginPage(): ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("ranijain@gmail.com");
+  const [password, setPassword] = useState("ranijain");
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,7 +21,7 @@ export default function LoginPage(): ReactElement {
   const nextDestination = useMemo(() => {
     const target = searchParams.get("next");
     if (!target || !target.startsWith("/") || target.startsWith("//")) {
-      return "/routes";
+      return "/dashboard";
     }
     return target;
   }, [searchParams]);
