@@ -46,16 +46,33 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
     }
 
-    const record = await prisma.contactRequest.create({
-      data: {
-        category: body.category.trim(),
-        hasTicket: body.hasTicket,
-        referenceCode: body.hasTicket ? body.referenceCode?.trim() ?? null : null,
-        message: body.message.trim(),
-        attachmentUrl: body.attachmentUrl?.trim() ?? null,
-        fullName: body.fullName.trim(),
-        email: body.email.trim().toLowerCase()
-      }
+    const record = await prisma.$transaction(async (tx) => {
+      const created = await tx.contactRequest.create({
+        data: {
+          category: body.category.trim(),
+          hasTicket: body.hasTicket,
+          referenceCode: body.hasTicket ? body.referenceCode?.trim() ?? null : null,
+          message: body.message.trim(),
+          attachmentUrl: body.attachmentUrl?.trim() ?? null,
+          fullName: body.fullName.trim(),
+          email: body.email.trim().toLowerCase()
+        }
+      });
+
+      await tx.auditEvent.create({
+        data: {
+          eventType: "contact_request_created",
+          entityType: "ContactRequest",
+          entityId: created.id,
+          meta: {
+            category: created.category,
+            hasTicket: created.hasTicket,
+            email: created.email
+          }
+        }
+      });
+
+      return created;
     });
 
     return NextResponse.json({ id: record.id, message: "Request received" }, { status: 201 });

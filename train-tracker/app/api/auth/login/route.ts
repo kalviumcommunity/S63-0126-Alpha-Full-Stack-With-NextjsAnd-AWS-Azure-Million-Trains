@@ -4,6 +4,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../lib/prisma";
 import { setSessionCookie } from "../../../../lib/auth-cookie";
 
+ Transaction
+export const runtime = "nodejs";
 function mapPrismaError(error: unknown): { status: number; error: string } {
   if (error instanceof Prisma.PrismaClientInitializationError) {
     return {
@@ -15,6 +17,7 @@ function mapPrismaError(error: unknown): { status: number; error: string } {
 
   return { status: 500, error: "Failed to log in." };
 }
+ main
 
 export async function POST(request: Request): Promise<NextResponse> {
   try {
@@ -35,7 +38,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     const normalizedEmail = email.trim().toLowerCase();
 
     const user = await prisma.user.findUnique({
-      where: { email: normalizedEmail }
+      where: { email: normalizedEmail },
+      select: { id: true, password: true }
     });
 
     if (!user) {

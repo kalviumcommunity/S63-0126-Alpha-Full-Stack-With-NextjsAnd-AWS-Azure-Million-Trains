@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { clearSessionCookie } from "../../../../lib/auth-cookie";
 
+export const runtime = "nodejs";
+
 export async function POST(): Promise<NextResponse> {
   const response = NextResponse.json({ message: "Logout successful." });
   clearSessionCookie(response);

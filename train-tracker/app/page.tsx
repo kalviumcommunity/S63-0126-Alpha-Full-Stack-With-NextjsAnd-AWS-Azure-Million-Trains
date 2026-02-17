@@ -137,6 +137,11 @@ export default function HomePage() {
         .step-number {
           transition: transform 200ms ease, box-shadow 200ms ease;
         }
+
+        .footer-link:hover {
+          text-decoration: underline;
+          text-underline-offset: 4px;
+        }
       `}</style>
       {/* Hero Section with Video Background */}
       <HeroVideo />
@@ -325,17 +330,17 @@ export default function HomePage() {
             <div style={styles.footerSection}>
               <h4 style={styles.footerHeading}>Quick Links</h4>
               <div style={styles.footerLinks}>
-                <Link href="/dashboard" style={styles.footerLink}>Dashboard</Link>
-                <Link href="/about" style={styles.footerLink}>About</Link>
-                <Link href="/contact" style={styles.footerLink}>Contact</Link>
-                <Link href="/faq" style={styles.footerLink}>FAQ</Link>
+                <Link href="/dashboard" style={styles.footerLink} className="footer-link">Dashboard</Link>
+                <Link href="/about" style={styles.footerLink} className="footer-link">About</Link>
+                <Link href="/contact" style={styles.footerLink} className="footer-link">Contact</Link>
+                <Link href="/faq" style={styles.footerLink} className="footer-link">FAQ</Link>
               </div>
             </div>
             <div style={styles.footerSection}>
               <h4 style={styles.footerHeading}>Account</h4>
               <div style={styles.footerLinks}>
-                <Link href="/login" style={styles.footerLink}>Login</Link>
-                <Link href="/signup" style={styles.footerLink}>Sign Up</Link>
+                <Link href="/login" style={styles.footerLink} className="footer-link">Login</Link>
+                <Link href="/signup" style={styles.footerLink} className="footer-link">Sign Up</Link>
               </div>
             </div>
           </div>
@@ -545,7 +550,7 @@ const styles: Record<string, CSSProperties> = {
   },
 
   cta: {
-    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)',
+    background: 'linear-gradient(135deg, #093db7 0%, #264e8f 50%, #334155 100%)',
     padding: '4rem 1.5rem',
     textAlign: 'center',
     color: '#ffffff',
@@ -586,10 +591,11 @@ const styles: Record<string, CSSProperties> = {
   },
 
   footer: {
-    background: '#0f172a',
-    color: '#ffffff',
+    background: ' #fcfdfe',
+    color: '#060505',
     padding: '3rem 1.5rem 1rem',
     borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+    
   },
 
   footerContent: {
@@ -609,22 +615,25 @@ const styles: Record<string, CSSProperties> = {
 
   footerTitle: {
     fontSize: '1.3rem',
-    fontWeight: 800,
+    fontWeight: 700,
     margin: 0,
     letterSpacing: '-0.01em',
+    marginLeft: '70px',
+  
   },
 
   footerHeading: {
     fontSize: '1rem',
     fontWeight: 700,
     margin: 0,
-    color: '#0f3a7d',
+    color: '#035ab1',
+    marginLeft: '200px',
   },
 
   footerText: {
-    fontSize: '0.9rem',
-    color: 'rgba(255, 255, 255, 0.7)',
-    margin: 0,
+    fontSize: '1rem',
+    color: 'rgba(7, 7, 7, 0.7)',
+    marginLeft: '70px',
     lineHeight: 1.6,
   },
 
@@ -635,11 +644,12 @@ const styles: Record<string, CSSProperties> = {
   },
 
   footerLink: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(3, 3, 3, 0.7)',
     textDecoration: 'none',
-    fontSize: '0.9rem',
+    fontSize: '1rem',
     transition: 'color 200ms ease',
     cursor: 'pointer',
+    marginLeft: '200px',
   },
 
   footerBottom: {
@@ -649,7 +659,7 @@ const styles: Record<string, CSSProperties> = {
 
   footerCopy: {
     fontSize: '0.85rem',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: 'rgba(12, 12, 12, 0.5)',
     margin: 0,
   },
   

@@ -1,9 +1,9 @@
 'use client';
 
 import type { CSSProperties, FormEvent, ReactElement } from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -11,12 +11,21 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export default function SignupPage(): ReactElement {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const nextDestination = useMemo(() => {
+    const target = searchParams.get("next");
+    if (!target || !target.startsWith("/") || target.startsWith("//")) {
+      return "/dashboard";
+    }
+    return target;
+  }, [searchParams]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -36,6 +45,17 @@ export default function SignupPage(): ReactElement {
       const payload = isJson ? await response.json() : await response.text();
 
       if (!response.ok) {
+ Transaction
+        setError(payload?.error ?? "Failed to sign up.");
+      } else {
+        setStatus("Account created successfully. You can log in now.");
+        setFullName("");
+        setEmail("");
+        setPassword("");
+        setTimeout(() => {
+          router.push(`/login?next=${encodeURIComponent(nextDestination)}`);
+        }, 600);
+
         const fallback =
           typeof payload === "string" && payload.trim()
             ? payload.trim()
@@ -51,6 +71,7 @@ export default function SignupPage(): ReactElement {
 
         setError(derivedError);
         return;
+ main
       }
 
       const successMessage =
@@ -165,7 +186,8 @@ export default function SignupPage(): ReactElement {
           <p style={{ marginTop: "1rem", color: "#dc2626" }}>{error}</p>
         )}
         <p style={{ marginTop: "1.5rem" }}>
-          Already have an account? <Link href="/login">Log in</Link>
+          Already have an account?{" "}
+          <Link href={`/login?next=${encodeURIComponent(nextDestination)}`}>Log in</Link>
         </p>
       </section>
     </main>

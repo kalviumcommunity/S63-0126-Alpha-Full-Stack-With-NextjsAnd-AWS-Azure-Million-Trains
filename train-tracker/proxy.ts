@@ -6,7 +6,6 @@ const PUBLIC_PAGES = new Set([
   "/",
   "/about",
   "/contact",
-  "/dashboard",
   "/faq",
   "/login",
   "/routes",
@@ -20,12 +19,15 @@ function isPublicPath(pathname: string): boolean {
   );
 }
 
+
 export function proxy(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
 
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
+    pathname === "/icon.svg" ||
+    pathname.startsWith("/icon.") ||
     pathname.startsWith("/images") ||
     pathname.startsWith("/icons") ||
     pathname === "/robots.txt" ||
@@ -52,12 +54,12 @@ export function proxy(request: NextRequest): NextResponse {
       );
     }
 
-    const loginUrl = new URL("/login", request.url);
+    const signupUrl = new URL("/signup", request.url);
     const nextParam = `${pathname}${request.nextUrl.search}`;
-    if (pathname !== "/login" && nextParam !== "/") {
-      loginUrl.searchParams.set("next", nextParam);
+    if (pathname !== "/signup" && nextParam !== "/") {
+      signupUrl.searchParams.set("next", nextParam);
     }
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(signupUrl);
   }
 
   if (hasSession && publicPath) {

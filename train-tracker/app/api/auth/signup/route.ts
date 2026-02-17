@@ -3,6 +3,9 @@ import { hash } from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../lib/prisma";
 
+ Transaction
+export const runtime = "nodejs";
+
 function mapPrismaError(error: unknown): { status: number; error: string } {
   if (error instanceof Prisma.PrismaClientInitializationError) {
     return {
@@ -14,6 +17,7 @@ function mapPrismaError(error: unknown): { status: number; error: string } {
 
   return { status: 500, error: "Failed to sign up." };
 }
+ main
 
 export async function POST(request: Request): Promise<NextResponse> {
   try {
@@ -48,12 +52,25 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const hashedPassword = await hash(password, 10);
 
-    await prisma.user.create({
-      data: {
-        fullName: fullName.trim(),
-        email: normalizedEmail,
-        password: hashedPassword
-      }
+    await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          fullName: fullName.trim(),
+          email: normalizedEmail,
+          password: hashedPassword
+        }
+      });
+
+      await tx.auditEvent.create({
+        data: {
+          eventType: "user_signup",
+          entityType: "User",
+          entityId: createdUser.id,
+          meta: {
+            email: createdUser.email
+          }
+        }
+      });
     });
 
     return NextResponse.json({ message: "Signup successful." }, { status: 201 });

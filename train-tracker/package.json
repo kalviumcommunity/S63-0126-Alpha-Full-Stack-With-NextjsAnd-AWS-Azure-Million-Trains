@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+ Transaction
+    "dev": "dotenv -e .env.local -- next dev",
+
     "predev": "npm run prisma:generate",
     "prebuild": "npm run prisma:generate",
     "prestart": "npm run prisma:generate",
     "dev": "dotenv -e .env.development -- next dev",
+ main
     "build": "dotenv -e .env.production -- next build",
     "build:development": "dotenv -e .env.development -- next build",
     "build:staging": "dotenv -e .env.staging -- next build",

@@ -17,15 +17,13 @@ export default function Navbar() {
   return (
     <nav style={styles.navbar}>
       <style>{`
-        @media (max-width: 768px) {
-          .nav-links {
-            display: ${isOpen ? 'flex' : 'none'} !important;
-          }
-        }
-
         .nav-link {
           position: relative;
           display: inline-block;
+        }
+
+        .nav-link:hover {
+          color: #ec4899;
         }
 
         .nav-link::after {
@@ -44,6 +42,36 @@ export default function Navbar() {
 
         .nav-link:hover::after {
           transform: scaleX(1);
+        }
+
+        .hamburger-btn {
+          display: none;
+        }
+
+        @media (max-width: 768px) {
+          .hamburger-btn {
+            display: flex;
+          }
+
+          .nav-links {
+            display: ${isOpen ? 'flex' : 'none'} !important;
+            flex-direction: column;
+            gap: 0.75rem;
+            width: 100%;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+          }
+
+          .auth-buttons {
+            width: 100%;
+            flex-direction: column;
+            gap: 0.75rem;
+          }
+
+          .login-btn,
+          .signup-btn {
+            width: 100%;
+          }
         }
 
         .auth-login:hover {
@@ -92,11 +120,11 @@ export default function Navbar() {
           ))}
 
           {/* Auth Buttons */}
-          <div style={styles.authButtons}>
-            <Link href="/login" style={styles.loginBtn} className="auth-login">
+          <div style={styles.authButtons} className="auth-buttons">
+            <Link href="/login" style={styles.loginBtn} className="auth-login login-btn">
               Login
             </Link>
-            <Link href="/signup" style={styles.signupBtn} className="auth-signup">
+            <Link href="/signup" style={styles.signupBtn} className="auth-signup signup-btn">
               Sign Up
             </Link>
           </div>
@@ -144,16 +172,12 @@ const styles: Record<string, CSSProperties> = {
   },
 
   hamburger: {
-    display: 'none',
     flexDirection: 'column',
     background: 'transparent',
     border: 'none',
     cursor: 'pointer',
     gap: '6px',
     padding: '0.5rem',
-    '@media (max-width: 768px)': {
-      display: 'flex',
-    },
   },
 
   hamburgerLine: {
@@ -169,13 +193,6 @@ const styles: Record<string, CSSProperties> = {
     alignItems: 'center',
     gap: '2rem',
     marginLeft: 'auto',
-    '@media (max-width: 768px)': {
-      flexDirection: 'column',
-      gap: '0.75rem',
-      width: '100%',
-      paddingTop: '1rem',
-      borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-    },
   },
 
   navLink: {
@@ -188,20 +205,12 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: '8px',
     cursor: 'pointer',
     letterSpacing: '-0.01em',
-    '&:hover': {
-      color: '#ec4899',
-    },
   },
 
   authButtons: {
     display: 'flex',
     gap: '1rem',
     alignItems: 'center',
-    '@media (max-width: 768px)': {
-      width: '100%',
-      flexDirection: 'column',
-      gap: '0.75rem',
-    },
   },
 
   loginBtn: {
@@ -218,9 +227,6 @@ const styles: Record<string, CSSProperties> = {
     textAlign: 'center',
     display: 'block',
     letterSpacing: '-0.01em',
-    '@media (max-width: 768px)': {
-      width: '100%',
-    },
   },
 
   signupBtn: {
@@ -238,8 +244,5 @@ const styles: Record<string, CSSProperties> = {
     display: 'block',
     boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)',
     letterSpacing: '-0.01em',
-    '@media (max-width: 768px)': {
-      width: '100%',
-    },
   },
 };
