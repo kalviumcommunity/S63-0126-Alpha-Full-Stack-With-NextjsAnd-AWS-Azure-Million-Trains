@@ -1,18 +1,27 @@
 'use client';
 
 import type { CSSProperties, FormEvent, ReactElement } from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function SignupPage(): ReactElement {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const nextDestination = useMemo(() => {
+    const target = searchParams.get("next");
+    if (!target || !target.startsWith("/") || target.startsWith("//")) {
+      return "/dashboard";
+    }
+    return target;
+  }, [searchParams]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -37,7 +46,7 @@ export default function SignupPage(): ReactElement {
         setEmail("");
         setPassword("");
         setTimeout(() => {
-          router.push("/login");
+          router.push(`/login?next=${encodeURIComponent(nextDestination)}`);
         }, 600);
       }
     } catch (err) {
@@ -140,7 +149,8 @@ export default function SignupPage(): ReactElement {
           <p style={{ marginTop: "1rem", color: "#dc2626" }}>{error}</p>
         )}
         <p style={{ marginTop: "1.5rem" }}>
-          Already have an account? <Link href="/login">Log in</Link>
+          Already have an account?{" "}
+          <Link href={`/login?next=${encodeURIComponent(nextDestination)}`}>Log in</Link>
         </p>
       </section>
     </main>

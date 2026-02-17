@@ -3,6 +3,8 @@ import { compare } from "bcryptjs";
 import { prisma } from "../../../../lib/prisma";
 import { setSessionCookie } from "../../../../lib/auth-cookie";
 
+export const runtime = "nodejs";
+
 export async function POST(request: Request): Promise<NextResponse> {
   try {
     const { email, password } = await request.json();
@@ -22,7 +24,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     const normalizedEmail = email.trim().toLowerCase();
 
     const user = await prisma.user.findUnique({
-      where: { email: normalizedEmail }
+      where: { email: normalizedEmail },
+      select: { id: true, password: true }
     });
 
     if (!user) {

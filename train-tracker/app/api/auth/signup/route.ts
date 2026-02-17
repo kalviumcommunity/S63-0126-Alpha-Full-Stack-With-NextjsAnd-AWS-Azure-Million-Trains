@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { prisma } from "../../../../lib/prisma";
 
+export const runtime = "nodejs";
+
 export async function POST(request: Request): Promise<NextResponse> {
   try {
     const { fullName, email, password } = await request.json();
@@ -35,12 +37,25 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const hashedPassword = await hash(password, 10);
 
-    await prisma.user.create({
-      data: {
-        fullName: fullName.trim(),
-        email: normalizedEmail,
-        password: hashedPassword
-      }
+    await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          fullName: fullName.trim(),
+          email: normalizedEmail,
+          password: hashedPassword
+        }
+      });
+
+      await tx.auditEvent.create({
+        data: {
+          eventType: "user_signup",
+          entityType: "User",
+          entityId: createdUser.id,
+          meta: {
+            email: createdUser.email
+          }
+        }
+      });
     });
 
     return NextResponse.json({ message: "Signup successful." }, { status: 201 });

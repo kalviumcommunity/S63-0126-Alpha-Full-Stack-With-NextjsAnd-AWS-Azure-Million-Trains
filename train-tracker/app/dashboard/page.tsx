@@ -164,6 +164,7 @@ export default function DashboardPage() {
       <BackgroundMedia
         videoSrc="/dashboard.mp4"
         posterSrc="/dashboard-poster.jpg"
+        imageSrc="https://images.nativeplanet.com/img/2025/12/bangalorelocaltrains600-1767114233.jpeg"
         fallbackImageSrc="https://res.cloudinary.com/dbj6ocwoz/image/upload/v1770020660/trn_ldauul.jpg"
       />
 

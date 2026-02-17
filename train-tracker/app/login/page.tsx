@@ -17,7 +17,7 @@ export default function LoginPage(): ReactElement {
   const nextDestination = useMemo(() => {
     const target = searchParams.get("next");
     if (!target || !target.startsWith("/") || target.startsWith("//")) {
-      return "/routes";
+      return "/dashboard";
     }
     return target;
   }, [searchParams]);
