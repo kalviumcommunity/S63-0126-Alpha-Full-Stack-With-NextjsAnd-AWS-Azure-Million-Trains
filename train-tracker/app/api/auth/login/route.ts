@@ -1,9 +1,23 @@
 import { NextResponse } from "next/server";
 import { compare } from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../lib/prisma";
 import { setSessionCookie } from "../../../../lib/auth-cookie";
 
+ Transaction
 export const runtime = "nodejs";
+function mapPrismaError(error: unknown): { status: number; error: string } {
+  if (error instanceof Prisma.PrismaClientInitializationError) {
+    return {
+      status: 503,
+      error:
+        "Database connection failed. Ensure Supabase is reachable and DATABASE_URL is correct."
+    };
+  }
+
+  return { status: 500, error: "Failed to log in." };
+}
+ main
 
 export async function POST(request: Request): Promise<NextResponse> {
   try {
@@ -49,6 +63,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     return response;
   } catch (error) {
     console.error("Login error", error);
-    return NextResponse.json({ error: "Failed to log in." }, { status: 500 });
+    const mapped = mapPrismaError(error);
+    return NextResponse.json({ error: mapped.error }, { status: mapped.status });
   }
 }
