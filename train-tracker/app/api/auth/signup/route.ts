@@ -1,16 +1,34 @@
 import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../lib/prisma";
 import { validationErrorResponse, createdResponse, errorResponse, internalErrorResponse } from "../../../../lib/api-response";
 
+ Transaction
 export const runtime = "nodejs";
 
+ API
 /**
  * POST /api/auth/signup
  * Create a new user account
  * Body: { fullName: string, email: string, password: string }
  * Returns: { success: true, message: "Account created", data: { id, email, fullName } }
  */
+
+function mapPrismaError(error: unknown): { status: number; error: string } {
+  if (error instanceof Prisma.PrismaClientInitializationError) {
+    return {
+      status: 503,
+      error:
+        "Database connection failed. Ensure Supabase is reachable and DATABASE_URL is correct."
+    };
+  }
+
+  return { status: 500, error: "Failed to sign up." };
+}
+ main
+
+ main
 export async function POST(request: Request): Promise<NextResponse> {
   try {
     const { fullName, email, password } = await request.json();
@@ -75,7 +93,13 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     return createdResponse(createdUser, "Account created successfully");
   } catch (error) {
+ API
     console.error("Signup error:", error);
     return internalErrorResponse("Failed to sign up. Please try again.");
+
+    console.error("Signup error", error);
+    const mapped = mapPrismaError(error);
+    return NextResponse.json({ error: mapped.error }, { status: mapped.status });
+ main
   }
 }
