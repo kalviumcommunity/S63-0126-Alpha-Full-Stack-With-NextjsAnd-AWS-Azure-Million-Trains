@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
+import { validationErrorResponse, createdResponse, internalErrorResponse } from "../../../lib/api-response";
 
 type ContactPayload = {
   category?: string;
@@ -15,35 +16,51 @@ function isValidEmail(value: string): boolean {
   return /.+@.+\..+/.test(value);
 }
 
+/**
+ * POST /api/contact
+ * Submit a contact/support request
+ * Body: {
+ *   category: string (e.g., 'general', 'technical', 'billing'),
+ *   hasTicket: boolean,
+ *   referenceCode?: string (required if hasTicket is true),
+ *   message: string,
+ *   fullName: string,
+ *   email: string,
+ *   attachmentUrl?: string
+ * }
+ * Returns: { success: true, message: "Request submitted", data: { id, createdAt, ... } }
+ */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
     const body: ContactPayload = await request.json();
+    const errors: Record<string, string> = {};
 
     if (!body.category || typeof body.category !== "string") {
-      return NextResponse.json({ error: "category is required" }, { status: 400 });
+      errors.category = "Category is required";
     }
 
     if (typeof body.hasTicket !== "boolean") {
-      return NextResponse.json({ error: "hasTicket must be a boolean" }, { status: 400 });
+      errors.hasTicket = "hasTicket must be a boolean value";
     }
 
     if (body.hasTicket && !body.referenceCode) {
-      return NextResponse.json(
-        { error: "referenceCode is required when hasTicket is true" },
-        { status: 400 }
-      );
+      errors.referenceCode = "Reference code is required when hasTicket is true";
     }
 
-    if (!body.message || typeof body.message !== "string") {
-      return NextResponse.json({ error: "message is required" }, { status: 400 });
+    if (!body.message || typeof body.message !== "string" || body.message.trim().length === 0) {
+      errors.message = "Message is required";
     }
 
-    if (!body.fullName || typeof body.fullName !== "string") {
-      return NextResponse.json({ error: "fullName is required" }, { status: 400 });
+    if (!body.fullName || typeof body.fullName !== "string" || body.fullName.trim().length === 0) {
+      errors.fullName = "Full name is required";
     }
 
     if (!body.email || typeof body.email !== "string" || !isValidEmail(body.email)) {
-      return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
+      errors.email = "Valid email address is required";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      return validationErrorResponse(errors);
     }
 
     const record = await prisma.$transaction(async (tx) => {
@@ -75,9 +92,10 @@ export async function POST(request: Request): Promise<NextResponse> {
       return created;
     });
 
-    return NextResponse.json({ id: record.id, message: "Request received" }, { status: 201 });
+    return createdResponse(record, "Contact request submitted successfully");
   } catch (error) {
-    console.error("Contact submit error", error);
-    return NextResponse.json({ error: "Failed to submit request" }, { status: 500 });
+    console.error("Contact request error:", error);
+    return internalErrorResponse("Failed to submit contact request. Please try again.");
   }
 }
+
