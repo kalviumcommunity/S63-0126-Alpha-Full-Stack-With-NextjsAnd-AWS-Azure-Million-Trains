@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../lib/prisma";
-import { validationErrorResponse, createdResponse, errorResponse, internalErrorResponse } from "../../../../lib/api-response";
+import { createdResponse, errorResponse, internalErrorResponse } from "../../../../lib/api-response";
 import { ERROR_CODES } from "../../../../lib/error-codes";
+import { signupSchema } from "../../../../lib/validation-schemas";
+import { parseAndValidateBody } from "../../../../lib/validation-helpers";
 
  Transaction
 export const runtime = "nodejs";
@@ -11,9 +13,12 @@ export const runtime = "nodejs";
  API
 /**
  * POST /api/auth/signup
- * Create a new user account
- * Body: { fullName: string, email: string, password: string }
- * Returns: { success: true, message: "Account created", data: { id, email, fullName } }
+ * Create a new user account with Zod validation
+ * 
+ * Request: { fullName: string, email: string, password: string }
+ * Success (201): { success: true, data: { id, email, fullName }, timestamp }
+ * Error (400): { success: false, error: { code: "E001" }, validationErrors, timestamp }
+ * Error (409): { success: false, error: { code: "E409" }, timestamp }
  */
 
 function mapPrismaError(error: unknown): { status: number; error: string } {
@@ -32,34 +37,12 @@ function mapPrismaError(error: unknown): { status: number; error: string } {
  main
 export async function POST(request: Request): Promise<NextResponse> {
   try {
-    const { fullName, email, password } = await request.json();
+    // Validate request body with Zod schema
+    const validatedData = await parseAndValidateBody(request, signupSchema);
 
-    const errors: Record<string, string> = {};
-
-    if (!fullName || typeof fullName !== "string" || !fullName.trim()) {
-      errors.fullName = "Full name is required";
-    }
-
-    if (!email || typeof email !== "string" || !email.trim()) {
-      errors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      errors.email = "Valid email format is required";
-    }
-
-    if (!password || typeof password !== "string" || !password.trim()) {
-      errors.password = "Password is required";
-    } else if (password.length < 6) {
-      errors.password = "Password must be at least 6 characters";
-    }
-
-    if (Object.keys(errors).length > 0) {
-      return validationErrorResponse(errors);
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-
+    // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email: normalizedEmail }
+      where: { email: validatedData.email }
     });
 
     if (existingUser) {
@@ -70,13 +53,14 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    const hashedPassword = await hash(password, 10);
+    // Hash password and create user
+    const hashedPassword = await hash(validatedData.password, 10);
 
     const createdUser = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
-          fullName: fullName.trim(),
-          email: normalizedEmail,
+          fullName: validatedData.fullName,
+          email: validatedData.email,
           password: hashedPassword
         },
         select: { id: true, email: true, fullName: true }
@@ -100,6 +84,12 @@ export async function POST(request: Request): Promise<NextResponse> {
   } catch (error) {
  API
     console.error("Signup error:", error);
+    
+    // If error is already a NextResponse (validation error), return it
+    if (error instanceof NextResponse) {
+      return error;
+    }
+    
     return internalErrorResponse("Failed to sign up. Please try again.");
 
     console.error("Signup error", error);

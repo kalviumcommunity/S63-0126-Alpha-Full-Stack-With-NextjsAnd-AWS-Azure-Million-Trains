@@ -1,79 +1,41 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
-import { validationErrorResponse, createdResponse, internalErrorResponse } from "../../../lib/api-response";
+import { createdResponse, internalErrorResponse } from "../../../lib/api-response";
 import { ERROR_CODES } from "../../../lib/error-codes";
-
-type ContactPayload = {
-  category?: string;
-  hasTicket?: boolean;
-  referenceCode?: string | null;
-  message?: string;
-  attachmentUrl?: string | null;
-  fullName?: string;
-  email?: string;
-};
-
-function isValidEmail(value: string): boolean {
-  return /.+@.+\..+/.test(value);
-}
+import { contactSchema } from "../../../lib/validation-schemas";
+import { parseAndValidateBody } from "../../../lib/validation-helpers";
 
 /**
  * POST /api/contact
- * Submit a contact/support request
- * Body: {
- *   category: string (e.g., 'general', 'technical', 'billing'),
- *   hasTicket: boolean,
- *   referenceCode?: string (required if hasTicket is true),
- *   message: string,
- *   fullName: string,
- *   email: string,
- *   attachmentUrl?: string
- * }
+ * Submit a contact/support request with Zod validation
+ * 
+ * Request body validated against contactSchema:
+ * - category: string (required)
+ * - fullName: string (required, 2-100 chars)
+ * - email: string (required, valid email)
+ * - hasTicket: boolean (required)
+ * - referenceCode: string (required if hasTicket is true)
+ * - message: string (required, 10-1000 chars)
+ * - attachmentUrl: string (optional, valid URL)
+ * 
  * Returns: { success: true, message: "Request submitted", data: { id, createdAt, ... } }
  */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
-    const body: ContactPayload = await request.json();
-    const errors: Record<string, string> = {};
+    // Validate request body with Zod schema
+    const validatedData = await parseAndValidateBody(request, contactSchema);
 
-    if (!body.category || typeof body.category !== "string") {
-      errors.category = "Category is required";
-    }
-
-    if (typeof body.hasTicket !== "boolean") {
-      errors.hasTicket = "hasTicket must be a boolean value";
-    }
-
-    if (body.hasTicket && !body.referenceCode) {
-      errors.referenceCode = "Reference code is required when hasTicket is true";
-    }
-
-    if (!body.message || typeof body.message !== "string" || body.message.trim().length === 0) {
-      errors.message = "Message is required";
-    }
-
-    if (!body.fullName || typeof body.fullName !== "string" || body.fullName.trim().length === 0) {
-      errors.fullName = "Full name is required";
-    }
-
-    if (!body.email || typeof body.email !== "string" || !isValidEmail(body.email)) {
-      errors.email = "Valid email address is required";
-    }
-
-    if (Object.keys(errors).length > 0) {
-      return validationErrorResponse(errors);
-    }
-
+    // Create contact request in database
     const record = await prisma.$transaction(async (tx) => {
       const created = await tx.contactRequest.create({
         data: {
-          category: body.category.trim(),
-          hasTicket: body.hasTicket,
-          referenceCode: body.hasTicket ? body.referenceCode?.trim() ?? null : null,
-          message: body.message.trim(),
-          attachmentUrl: body.attachmentUrl?.trim() ?? null,
-          fullName: body.fullName.trim(),
-          email: body.email.trim().toLowerCase()
+          category: validatedData.category,
+          hasTicket: validatedData.hasTicket,
+          referenceCode: validatedData.hasTicket ? validatedData.referenceCode : null,
+          message: validatedData.message,
+          attachmentUrl: validatedData.attachmentUrl,
+          fullName: validatedData.fullName,
+          email: validatedData.email
         }
       });
 
