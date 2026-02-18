@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prisma } from "../../../../lib/prisma";
 import { verifyToken, extractTokenFromHeader } from "../../../../lib/jwt-utils";
 import { unauthorizedResponse, successResponse } from "../../../../lib/api-response";
 
@@ -28,12 +29,24 @@ export async function GET(request: Request): Promise<NextResponse> {
       return unauthorizedResponse("Invalid or expired token");
     }
 
-    // Return protected user data
+    // Fetch complete user data from database
+    const user = await prisma.user.findUnique({
+      where: { id: payload.id },
+      select: { id: true, email: true, fullName: true, role: true, createdAt: true }
+    });
+
+    if (!user) {
+      return unauthorizedResponse("User not found");
+    }
+
+    // Return protected user data including role
     return successResponse(
       {
-        id: payload.id,
-        email: payload.email,
-        fullName: payload.fullName
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        createdAt: user.createdAt
       },
       "Profile retrieved successfully"
     );
