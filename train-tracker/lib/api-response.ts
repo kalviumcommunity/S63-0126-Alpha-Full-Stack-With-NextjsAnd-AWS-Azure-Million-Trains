@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server';
+import { ERROR_CODES, getErrorCodeMessage } from './error-codes';
 
 export interface ApiResponse<T = any> {
   success: boolean;
-  data?: T;
-  error?: string;
   message?: string;
+  data?: T;
+  error?: {
+    code: string;
+    message?: string;
+    details?: any;
+  };
+  timestamp: string;
   meta?: {
     page?: number;
     limit?: number;
@@ -24,8 +30,9 @@ export function successResponse<T>(
 ): NextResponse {
   const response: ApiResponse<T> = {
     success: true,
+    message: message || 'Operation completed successfully',
     data,
-    message,
+    timestamp: new Date().toISOString(),
   };
 
   if (meta) {
@@ -49,18 +56,21 @@ export function createdResponse<T>(
  * Error response helper
  */
 export function errorResponse(
-  error: string,
+  message: string,
   status: number = 400,
+  errorCode: string = ERROR_CODES.INTERNAL_ERROR,
   details?: any
 ): NextResponse {
   const response: ApiResponse = {
     success: false,
-    error,
+    message,
+    error: {
+      code: errorCode,
+      message: getErrorCodeMessage(errorCode),
+      details,
+    },
+    timestamp: new Date().toISOString(),
   };
-
-  if (details) {
-    response.meta = details;
-  }
 
   return NextResponse.json(response, { status });
 }
@@ -72,10 +82,13 @@ export function validationErrorResponse(errors: Record<string, string>): NextRes
   return NextResponse.json(
     {
       success: false,
-      error: 'Validation failed',
-      meta: {
-        validationErrors: errors,
+      message: 'Validation failed',
+      error: {
+        code: ERROR_CODES.VALIDATION_ERROR,
+        message: 'One or more fields failed validation',
+        details: { validationErrors: errors },
       },
+      timestamp: new Date().toISOString(),
     },
     { status: 400 }
   );
@@ -84,22 +97,36 @@ export function validationErrorResponse(errors: Record<string, string>): NextRes
 /**
  * Not found response (404)
  */
-export function notFoundResponse(resourceType: string = 'Resource'): NextResponse {
-  return errorResponse(`${resourceType} not found`, 404);
+export function notFoundResponse(
+  message: string = 'Resource not found',
+  resourceType?: string
+): NextResponse {
+  return errorResponse(
+    message || `${resourceType || 'Resource'} not found`,
+    404,
+    ERROR_CODES.NOT_FOUND
+  );
 }
 
 /**
  * Unauthorized response (401)
  */
-export function unauthorizedResponse(message: string = 'Unauthorized'): NextResponse {
-  return errorResponse(message, 401);
+export function unauthorizedResponse(message: string = 'Authentication required'): NextResponse {
+  return errorResponse(message, 401, ERROR_CODES.UNAUTHORIZED);
 }
 
 /**
  * Forbidden response (403)
  */
 export function forbiddenResponse(message: string = 'Access denied'): NextResponse {
-  return errorResponse(message, 403);
+  return errorResponse(message, 403, ERROR_CODES.FORBIDDEN);
+}
+
+/**
+ * Conflict response (409)
+ */
+export function conflictResponse(message: string = 'Resource already exists'): NextResponse {
+  return errorResponse(message, 409, ERROR_CODES.RESOURCE_EXISTS);
 }
 
 /**
@@ -107,7 +134,11 @@ export function forbiddenResponse(message: string = 'Access denied'): NextRespon
  */
 export function internalErrorResponse(message: string = 'Internal server error'): NextResponse {
   console.error('Internal server error:', message);
-  return errorResponse(message, 500);
+  return errorResponse(
+    message,
+    500,
+    ERROR_CODES.INTERNAL_ERROR
+  );
 }
 
 /**

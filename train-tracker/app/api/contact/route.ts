@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
 import { validationErrorResponse, createdResponse, internalErrorResponse } from "../../../lib/api-response";
+import { ERROR_CODES } from "../../../lib/error-codes";
 
 type ContactPayload = {
   category?: string;

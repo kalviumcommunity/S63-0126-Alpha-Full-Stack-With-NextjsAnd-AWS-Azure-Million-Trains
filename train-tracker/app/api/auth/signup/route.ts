@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { prisma } from "../../../../lib/prisma";
 import { validationErrorResponse, createdResponse, errorResponse, internalErrorResponse } from "../../../../lib/api-response";
+import { ERROR_CODES } from "../../../../lib/error-codes";
 
 export const runtime = "nodejs";
 
@@ -44,7 +45,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
 
     if (existingUser) {
-      return errorResponse("An account with that email already exists", 409);
+      return errorResponse(
+        "An account with that email already exists",
+        409,
+        ERROR_CODES.RESOURCE_EXISTS
+      );
     }
 
     const hashedPassword = await hash(password, 10);

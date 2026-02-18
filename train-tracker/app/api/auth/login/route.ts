@@ -3,14 +3,17 @@ import { compare } from "bcryptjs";
 import { prisma } from "../../../../lib/prisma";
 import { setSessionCookie } from "../../../../lib/auth-cookie";
 import { validationErrorResponse, unauthorizedResponse, successResponse, internalErrorResponse } from "../../../../lib/api-response";
+import { ERROR_CODES } from "../../../../lib/error-codes";
 
 export const runtime = "nodejs";
 
 /**
  * POST /api/auth/login
- * Login with email and password
- * Body: { email: string, password: string }
- * Returns: { success: true, message: "Login successful", data: { id, email } }
+ * Authenticate user with email and password
+ * 
+ * Request: { email: string, password: string }
+ * Success (200): { success: true, data: { id, email }, timestamp }
+ * Error (401): { success: false, error: { code: "E401"|"E011" }, timestamp }
  */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
