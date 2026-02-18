@@ -2,14 +2,16 @@ import { NextResponse } from "next/server";
 import { compare } from "bcryptjs";
 import { prisma } from "../../../../lib/prisma";
 import { setSessionCookie } from "../../../../lib/auth-cookie";
-import { validationErrorResponse, unauthorizedResponse, successResponse, internalErrorResponse } from "../../../../lib/api-response";
+import { unauthorizedResponse, successResponse, internalErrorResponse } from "../../../../lib/api-response";
 import { ERROR_CODES } from "../../../../lib/error-codes";
+import { loginSchema } from "../../../../lib/validation-schemas";
+import { parseAndValidateBody } from "../../../../lib/validation-helpers";
 
 export const runtime = "nodejs";
 
 /**
  * POST /api/auth/login
- * Authenticate user with email and password
+ * Authenticate user with email and password (Zod validated)
  * 
  * Request: { email: string, password: string }
  * Success (200): { success: true, data: { id, email }, timestamp }
@@ -17,26 +19,12 @@ export const runtime = "nodejs";
  */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
-    const { email, password } = await request.json();
+    // Validate request body with Zod schema
+    const validatedData = await parseAndValidateBody(request, loginSchema);
 
-    const errors: Record<string, string> = {};
-
-    if (!email || typeof email !== "string" || !email.trim()) {
-      errors.email = "Email is required";
-    }
-
-    if (!password || typeof password !== "string" || !password.trim()) {
-      errors.password = "Password is required";
-    }
-
-    if (Object.keys(errors).length > 0) {
-      return validationErrorResponse(errors);
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-
+    // Find user by email
     const user = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
+      where: { email: validatedData.email },
       select: { id: true, email: true, password: true }
     });
 
@@ -44,12 +32,14 @@ export async function POST(request: Request): Promise<NextResponse> {
       return unauthorizedResponse("Invalid email or password");
     }
 
-    const passwordMatches = await compare(password, user.password);
+    // Verify password
+    const passwordMatches = await compare(validatedData.password, user.password);
 
     if (!passwordMatches) {
       return unauthorizedResponse("Invalid email or password");
     }
 
+    // Create success response and set session cookie
     const response = successResponse(
       { id: user.id, email: user.email },
       "Login successful"
@@ -58,6 +48,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     return response;
   } catch (error) {
     console.error("Login error:", error);
+    
+    // If error is already a NextResponse (validation error), return it
+    if (error instanceof NextResponse) {
+      return error;
+    }
+    
     return internalErrorResponse("Failed to login. Please try again.");
   }
 }
