@@ -2,20 +2,25 @@
 
 ## Overview
 
-This document describes the RESTful API for the Train Tracker application. All endpoints follow REST conventions using resource-based naming, standard HTTP methods, and consistent error handling.
+This document describes the RESTful API for the Train Tracker application. All endpoints follow REST conventions using resource-based naming, standard HTTP methods, and **consistent error handling via a Global Response Handler**.
+
+> **See [RESPONSE_HANDLER.md](./RESPONSE_HANDLER.md) for detailed documentation on the unified response format, error codes, and implementation patterns.**
 
 ### Key Principles
 
 - **Resource-based URLs**: All endpoints use nouns (not verbs) to represent resources
 - **Standard HTTP Methods**: GET (read), POST (create), PUT/PATCH (update), DELETE (remove)
-- **Consistent Response Format**: All responses follow a standard structure with `success`, `data`, `error`, and `meta` fields
+- **Unified Response Format**: All responses follow a standard structure with `success`, `data`, `error`, and `timestamp` fields (See below)
 - **Pagination Support**: List endpoints support `page` and `limit` query parameters
 - **Meaningful Status Codes**: Responses use appropriate HTTP status codes
-- **Field Validation**: Request validation with detailed error messages
+- **Error Codes**: Every error includes a machine-readable code (E001, E401, etc.) for monitoring and debugging
+- **Field Validation**: Request validation with detailed field-level error messages
 
 ---
 
-## API Response Format
+## Unified Response Format
+
+Every API endpoint returns responses in a standardized format. This consistency enables predictable error handling on the frontend and robust monitoring in production.
 
 ### Success Response
 
@@ -24,8 +29,9 @@ All successful responses follow this structure:
 ```json
 {
   "success": true,
-  "data": { /* Resource data */ },
-  "message": "Operation completed successfully",
+  "message": "Human-readable operation result",
+  "data": { /* Your resource data */ },
+  "timestamp": "2026-02-18T10:30:00.000Z",
   "meta": {
     "page": 1,
     "limit": 10,
@@ -35,35 +41,130 @@ All successful responses follow this structure:
 }
 ```
 
+**Field Descriptions:**
+- `success` (boolean): Always `true` for successful operations
+- `message` (string): Human-readable description of what happened
+- `data` (any): The actual resource(s) returned by the endpoint
+- `timestamp` (string): ISO 8601 timestamp of when response was generated (UTC)
+- `meta` (object, optional): Pagination metadata for list endpoints
+
+**Example Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "User created successfully",
+  "data": {
+    "id": "user-uuid-123",
+    "fullName": "John Doe",
+    "email": "john@example.com"
+  },
+  "timestamp": "2026-02-18T10:30:45.123Z"
+}
+```
+
 ### Error Response
 
-All error responses follow this structure:
+All error responses follow a structured format with machine-readable error codes:
 
 ```json
 {
   "success": false,
-  "error": "Error message",
-  "meta": {
-    "validationErrors": {
-      "email": "Valid email is required",
-      "password": "Password must be at least 6 characters"
+  "message": "User-friendly error message",
+  "error": {
+    "code": "E001",
+    "message": "Standard message for this error code",
+    "details": {
+      "validationErrors": {
+        "fieldName": "Field-specific error message"
+      }
     }
-  }
+  },
+  "timestamp": "2026-02-18T10:30:00.000Z"
 }
 ```
 
+**Field Descriptions:**
+- `success` (boolean): Always `false` for errors
+- `message` (string): User-friendly error description
+- `error` (object): Structured error information
+  - `code` (string): Machine-readable error code (E001, E401, etc.) for logging and monitoring
+  - `message` (string): Standard message explaining this error code
+  - `details` (object, optional): Additional context such as validation errors
+- `timestamp` (string): ISO 8601 timestamp of when error occurred
+
+**Example Error Response (400 Bad Request - Validation):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "error": {
+    "code": "E001",
+    "message": "Invalid input provided",
+    "details": {
+      "validationErrors": {
+        "email": "Valid email format is required",
+        "password": "Password must be at least 6 characters"
+      }
+    }
+  },
+  "timestamp": "2026-02-18T10:30:45.123Z"
+}
+```
+
+**Example Error Response (409 Conflict):**
+```json
+{
+  "success": false,
+  "message": "An account with that email already exists",
+  "error": {
+    "code": "E409",
+    "message": "Resource already exists"
+  },
+  "timestamp": "2026-02-18T10:30:45.123Z"
+}
+```
+
+### Error Code Reference
+
+The API uses standardized error codes to enable reliable error handling and monitoring:
+
+| Code | Category | HTTP Status | Meaning |
+|------|----------|-------------|---------|
+| **E001** | Validation | 400 | General validation error |
+| **E002** | Validation | 400 | Required field missing |
+| **E003** | Validation | 400 | Invalid data format |
+| **E004** | Validation | 400 | Email format invalid |
+| **E005** | Validation | 400 | Password too weak |
+| **E401** | Auth | 401 | Authentication required |
+| **E403** | Auth | 403 | Forbidden / Access denied |
+| **E011** | Auth | 401 | Invalid credentials |
+| **E012** | Auth | 401 | Session expired |
+| **E404** | Resource | 404 | Resource not found |
+| **E409** | Resource | 409 | Resource already exists |
+| **E010** | Resource | 409 | Operation conflicts with existing data |
+| **E500** | Server | 500 | Internal server error |
+| **E501** | Server | 500 | Database operation failed |
+| **E502** | Server | 502 | External API error |
+| **E503** | Server | 503 | Service unavailable |
+
+**See [error-codes.ts](./lib/error-codes.ts) for the complete list of domain-specific error codes.**
+
 ### HTTP Status Codes
 
-| Code | Meaning | Usage |
-|------|---------|-------|
-| **200** | OK | Successful GET request |
-| **201** | Created | Successful POST request (resource created) |
-| **400** | Bad Request | Invalid input or validation error |
-| **401** | Unauthorized | Authentication required or credentials invalid |
-| **403** | Forbidden | User lacks permission to access resource |
+Responses use standard HTTP status codes along with error codes for comprehensive error classification:
+
+| Status | Meaning | Example Scenario |
+|--------|---------|------------------|
+| **200** | OK | Successful GET request, data returned |
+| **201** | Created | Successful POST, new resource created |
+| **400** | Bad Request | Validation error, malformed input |
+| **401** | Unauthorized | Authentication required or invalid credentials |
+| **403** | Forbidden | User lacks permission |
 | **404** | Not Found | Resource doesn't exist |
-| **409** | Conflict | Resource already exists (e.g., email taken) |
-| **500** | Internal Server Error | Unexpected server error |
+| **409** | Conflict | Resource already exists (e.g., duplicate email) |
+| **500** | Internal Server Error | Unexpected server error, database failure |
+| **502** | Bad Gateway | External API error |
+| **503** | Service Unavailable | Service temporarily down |
 
 ---
 

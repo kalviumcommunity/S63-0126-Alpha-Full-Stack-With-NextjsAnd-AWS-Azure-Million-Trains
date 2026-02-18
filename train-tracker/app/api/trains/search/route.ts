@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { RapidApiError, requestRapidApi } from "@/lib/rapidApi";
 import { validationErrorResponse, successResponse, errorResponse, internalErrorResponse, getPaginationParams, createPaginationMeta } from "@/lib/api-response";
+import { ERROR_CODES } from "@/lib/error-codes";
 
 const ERROR_MESSAGES = {
   404: "No trains found for that search",
