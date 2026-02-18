@@ -5,11 +5,15 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 export default function LoginPage(): ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("ranijain@gmail.com");
+  const [password, setPassword] = useState("ranijain");
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,16 +39,36 @@ export default function LoginPage(): ReactElement {
         body: JSON.stringify({ email, password })
       });
 
-      const payload = await response.json();
+      const contentType = response.headers.get("content-type") ?? "";
+      const isJson = contentType.includes("application/json");
+      const payload = isJson ? await response.json() : await response.text();
 
       if (!response.ok) {
-        setError(payload?.error ?? "Failed to log in.");
-      } else {
-        setStatus("Logged in successfully. Redirecting...");
-        setTimeout(() => {
-          router.replace(nextDestination);
-        }, 450);
+        const fallback =
+          typeof payload === "string" && payload.trim()
+            ? payload.trim()
+            : "Failed to log in.";
+        const derivedError =
+          isJson && isRecord(payload) && typeof payload.error === "string"
+            ? payload.error
+            : fallback;
+
+        if (!isJson) {
+          console.error("Login API returned non-JSON error:", payload);
+        }
+
+        setError(derivedError);
+        return;
       }
+
+      setStatus(
+        isJson && isRecord(payload) && typeof payload.message === "string"
+          ? payload.message
+          : "Logged in successfully. Redirecting..."
+      );
+      setTimeout(() => {
+        router.replace(nextDestination);
+      }, 450);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {

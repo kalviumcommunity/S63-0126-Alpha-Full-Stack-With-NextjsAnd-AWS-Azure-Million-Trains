@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { compare } from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../lib/prisma";
 import { setSessionCookie } from "../../../../lib/auth-cookie";
 import { unauthorizedResponse, successResponse, internalErrorResponse } from "../../../../lib/api-response";
@@ -7,7 +8,20 @@ import { ERROR_CODES } from "../../../../lib/error-codes";
 import { loginSchema } from "../../../../lib/validation-schemas";
 import { parseAndValidateBody } from "../../../../lib/validation-helpers";
 
+ Transaction
 export const runtime = "nodejs";
+function mapPrismaError(error: unknown): { status: number; error: string } {
+  if (error instanceof Prisma.PrismaClientInitializationError) {
+    return {
+      status: 503,
+      error:
+        "Database connection failed. Ensure Supabase is reachable and DATABASE_URL is correct."
+    };
+  }
+
+  return { status: 500, error: "Failed to log in." };
+}
+ main
 
 /**
  * POST /api/auth/login
@@ -47,6 +61,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     setSessionCookie(response, user.id);
     return response;
   } catch (error) {
+ API
     console.error("Login error:", error);
     
     // If error is already a NextResponse (validation error), return it
@@ -55,6 +70,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
     
     return internalErrorResponse("Failed to login. Please try again.");
+
+    console.error("Login error", error);
+    const mapped = mapPrismaError(error);
+    return NextResponse.json({ error: mapped.error }, { status: mapped.status });
+ main
   }
 }
 

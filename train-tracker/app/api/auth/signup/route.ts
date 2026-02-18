@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../lib/prisma";
 import { createdResponse, errorResponse, internalErrorResponse } from "../../../../lib/api-response";
 import { ERROR_CODES } from "../../../../lib/error-codes";
 import { signupSchema } from "../../../../lib/validation-schemas";
 import { parseAndValidateBody } from "../../../../lib/validation-helpers";
 
+ Transaction
 export const runtime = "nodejs";
 
+ API
 /**
  * POST /api/auth/signup
  * Create a new user account with Zod validation
@@ -17,6 +20,21 @@ export const runtime = "nodejs";
  * Error (400): { success: false, error: { code: "E001" }, validationErrors, timestamp }
  * Error (409): { success: false, error: { code: "E409" }, timestamp }
  */
+
+function mapPrismaError(error: unknown): { status: number; error: string } {
+  if (error instanceof Prisma.PrismaClientInitializationError) {
+    return {
+      status: 503,
+      error:
+        "Database connection failed. Ensure Supabase is reachable and DATABASE_URL is correct."
+    };
+  }
+
+  return { status: 500, error: "Failed to sign up." };
+}
+ main
+
+ main
 export async function POST(request: Request): Promise<NextResponse> {
   try {
     // Validate request body with Zod schema
@@ -64,6 +82,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     return createdResponse(createdUser, "Account created successfully");
   } catch (error) {
+ API
     console.error("Signup error:", error);
     
     // If error is already a NextResponse (validation error), return it
@@ -72,5 +91,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
     
     return internalErrorResponse("Failed to sign up. Please try again.");
+
+    console.error("Signup error", error);
+    const mapped = mapPrismaError(error);
+    return NextResponse.json({ error: mapped.error }, { status: mapped.status });
+ main
   }
 }
