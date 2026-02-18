@@ -4,6 +4,7 @@ import { prisma } from "../../../lib/prisma";
 import { successResponse } from "../../../lib/api-response";
 import { handleError, handlePermissionError, handleDatabaseError } from "../../../lib/error-handler";
 import { logger } from "../../../lib/logger";
+import { invalidateUserCache } from "../../../lib/cache-invalidation";
 
 export const runtime = "nodejs";
 
@@ -103,6 +104,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       data: { role: "admin" },
       select: { id: true, email: true, fullName: true, role: true }
     });
+
+    // Invalidate user caches after role change
+    await invalidateUserCache.specificUser(targetUserId);
+    await invalidateUserCache.allUsersList();
+    await invalidateUserCache.userStats();
 
     logger.info("User promoted to admin", {
       adminId: userId,

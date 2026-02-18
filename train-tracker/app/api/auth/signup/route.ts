@@ -6,6 +6,7 @@ import { createdResponse, errorResponse, internalErrorResponse } from "../../../
 import { ERROR_CODES } from "../../../../lib/error-codes";
 import { signupSchema } from "../../../../lib/validation-schemas";
 import { parseAndValidateBody } from "../../../../lib/validation-helpers";
+import { invalidateUserCache } from "../../../../lib/cache-invalidation";
 
 export const runtime = "nodejs";
 
@@ -75,6 +76,9 @@ export async function POST(request: Request): Promise<NextResponse> {
 
       return user;
     });
+
+    // Invalidate users list cache after new signup
+    await invalidateUserCache.allUsersList();
 
     return createdResponse(createdUser, "Account created successfully");
   } catch (error) {

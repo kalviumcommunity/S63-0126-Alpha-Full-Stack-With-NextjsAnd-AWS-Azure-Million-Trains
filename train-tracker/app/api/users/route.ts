@@ -4,6 +4,7 @@ import { prisma } from "../../../lib/prisma";
 import { successResponse } from "../../../lib/api-response";
 import { handleAuthError, handleDatabaseError } from "../../../lib/error-handler";
 import { logger } from "../../../lib/logger";
+import { cacheUtils, cacheKeys } from "../../../lib/redis";
 
 export const runtime = "nodejs";
 
@@ -38,38 +39,49 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     logger.debug("Fetching users list", { userId, limit, offset });
 
-    // Fetch users
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        role: true,
-        createdAt: true
-      },
-      take: limit,
-      skip: offset,
-      orderBy: { createdAt: "desc" }
-    });
+    // Generate cache key
+    const cacheKey = `${cacheKeys.usersList()}:limit:${limit}:offset:${offset}`;
 
-    const total = await prisma.user.count();
+    // Use cache-aside pattern: try cache first, then fetch from DB
+    const usersData = await cacheUtils.getOrFetch(
+      cacheKey,
+      async () => {
+        const users = await prisma.user.findMany({
+          select: {
+            id: true,
+            email: true,
+            fullName: true,
+            role: true,
+            createdAt: true
+          },
+          take: limit,
+          skip: offset,
+          orderBy: { createdAt: "desc" }
+        });
+
+        const total = await prisma.user.count();
+
+        return { users, total };
+      },
+      300 // Cache for 5 minutes
+    );
 
     logger.info("Users list retrieved", {
       userId,
-      count: users.length,
-      total,
+      count: usersData.users.length,
+      total: usersData.total,
       limit,
       offset
     });
 
     return successResponse(
       {
-        users,
+        users: usersData.users,
         pagination: {
-          total,
+          total: usersData.total,
           limit,
           offset,
-          hasMore: offset + limit < total
+          hasMore: offset + limit < usersData.total
         }
       },
       "Users retrieved successfully"
@@ -82,6 +94,52 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
     return handleDatabaseError(error, {
       context: "GET /api/users",
+      endpoint: request.nextUrl.pathname,
+      method: request.method,
+      userId: userId || undefined
+    });
+  }
+}
+
+/**
+ * POST /api/users/invalidate-cache
+ * Invalidate all users cache (for testing/admin purposes)
+ * 
+ * Headers: Authorization: Bearer <jwt_token>
+ * Success (200): { success: true, message: "Cache invalidated" }
+ * Error (401): { success: false, error: { code: "E401" } }
+ */
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  try {
+    const userId = request.headers.get("x-user-id");
+    const userRole = request.headers.get("x-user-role");
+
+    // Only admins can manually invalidate cache
+    if (userRole !== "admin") {
+      logger.warn("Cache invalidation attempted by non-admin", { userId });
+      return handleDatabaseError(new Error("Admin access required"), {
+        context: "POST /api/users",
+        endpoint: request.nextUrl.pathname,
+        method: request.method,
+        userId: userId || undefined
+      });
+    }
+
+    const count = await cacheUtils.invalidatePattern("users:list:*");
+    logger.info("Users cache invalidated", { userId, count });
+
+    return successResponse(
+      { invalidatedCount: count },
+      `Cache invalidated: ${count} entries removed`
+    );
+  } catch (error) {
+    const userId = request.headers.get("x-user-id");
+    logger.error("Cache invalidation error", {
+      userId,
+      message: error instanceof Error ? error.message : "Unknown error"
+    });
+    return handleDatabaseError(error, {
+      context: "POST /api/users",
       endpoint: request.nextUrl.pathname,
       method: request.method,
       userId: userId || undefined
