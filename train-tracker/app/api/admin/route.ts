@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "../../../lib/prisma";
-import { successResponse, unauthorizedResponse } from "../../../lib/api-response";
+import { successResponse } from "../../../lib/api-response";
+import { handleError, handlePermissionError, handleDatabaseError } from "../../../lib/error-handler";
+import { logger } from "../../../lib/logger";
 
 export const runtime = "nodejs";
 
@@ -20,7 +22,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const userRole = request.headers.get("x-user-role");
 
     if (!userId || userRole !== "admin") {
-      return unauthorizedResponse("Admin access required");
+      logger.warn("Unauthorized admin access attempt", { userId, userRole });
+      return handlePermissionError("Admin access required", {
+        endpoint: request.nextUrl.pathname,
+        method: request.method,
+        userId
+      });
     }
 
     // Fetch admin statistics
@@ -28,6 +35,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const adminUsers = await prisma.user.count({ where: { role: "admin" } });
     const totalContactRequests = await prisma.contactRequest.count();
     const totalAuditEvents = await prisma.auditEvent.count();
+
+    logger.info("Admin dashboard accessed", { userId, timestamp: new Date().toISOString() });
 
     return successResponse(
       {
@@ -43,15 +52,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       "Admin dashboard data retrieved successfully"
     );
   } catch (error) {
-    console.error("Admin route error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: { code: "E500" },
-        message: "Internal server error"
-      },
-      { status: 500 }
-    );
+    logger.error("Admin GET route error", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : null
+    });
+    return handleDatabaseError(error, {
+      context: "GET /api/admin",
+      endpoint: request.nextUrl.pathname,
+      method: request.method
+    });
   }
 }
 
@@ -62,29 +71,44 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const userRole = request.headers.get("x-user-role");
+    const userId = request.headers.get("x-user-id");
+
     if (userRole !== "admin") {
-      return unauthorizedResponse("Admin access required");
+      logger.warn("Unauthorized admin action attempt", { userId, action: "promote-user" });
+      return handlePermissionError("Admin access required", {
+        endpoint: request.nextUrl.pathname,
+        method: request.method,
+        userId
+      });
     }
 
     const body = await request.json();
-    const { userId } = body;
+    const { userId: targetUserId } = body;
 
-    if (!userId) {
-      return NextResponse.json(
+    if (!targetUserId) {
+      return handleError(
+        new Error("userId is required"),
         {
-          success: false,
-          error: { code: "E400" },
-          message: "userId is required"
-        },
-        { status: 400 }
+          context: "POST /api/admin/promote-user - Missing userId",
+          endpoint: request.nextUrl.pathname,
+          method: request.method,
+          userId
+        }
       );
     }
 
     // Promote user to admin
     const updatedUser = await prisma.user.update({
-      where: { id: userId },
+      where: { id: targetUserId },
       data: { role: "admin" },
       select: { id: true, email: true, fullName: true, role: true }
+    });
+
+    logger.info("User promoted to admin", {
+      adminId: userId,
+      promotedUserId: targetUserId,
+      userEmail: updatedUser.email,
+      timestamp: new Date().toISOString()
     });
 
     return successResponse(
@@ -92,14 +116,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       "User promoted to admin successfully"
     );
   } catch (error) {
-    console.error("Promote user error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: { code: "E500" },
-        message: "Failed to promote user"
-      },
-      { status: 500 }
-    );
+    const userId = request.headers.get("x-user-id");
+    logger.error("Promote user error", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      adminId: userId
+    });
+    return handleDatabaseError(error, {
+      context: "POST /api/admin/promote-user",
+      endpoint: request.nextUrl.pathname,
+      method: request.method,
+      userId
+    });
   }
 }

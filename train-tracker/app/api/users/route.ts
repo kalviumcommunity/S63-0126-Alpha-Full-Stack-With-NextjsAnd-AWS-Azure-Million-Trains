@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "../../../lib/prisma";
 import { successResponse } from "../../../lib/api-response";
+import { handleAuthError, handleDatabaseError } from "../../../lib/error-handler";
+import { logger } from "../../../lib/logger";
 
 export const runtime = "nodejs";
 
@@ -22,20 +24,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Middleware already validated token
     const userId = request.headers.get("x-user-id");
     if (!userId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: { code: "E401" },
-          message: "Authentication required"
-        },
-        { status: 401 }
-      );
+      logger.warn("Users list accessed without authentication");
+      return handleAuthError("Authentication required", {
+        endpoint: request.nextUrl.pathname,
+        method: request.method
+      });
     }
 
     // Get pagination params
     const searchParams = request.nextUrl.searchParams;
     const limit = Math.min(parseInt(searchParams.get("limit") || "10"), 100);
     const offset = parseInt(searchParams.get("offset") || "0");
+
+    logger.debug("Fetching users list", { userId, limit, offset });
 
     // Fetch users
     const users = await prisma.user.findMany({
@@ -53,6 +54,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const total = await prisma.user.count();
 
+    logger.info("Users list retrieved", {
+      userId,
+      count: users.length,
+      total,
+      limit,
+      offset
+    });
+
     return successResponse(
       {
         users,
@@ -66,14 +75,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       "Users retrieved successfully"
     );
   } catch (error) {
-    console.error("Users list error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: { code: "E500" },
-        message: "Internal server error"
-      },
-      { status: 500 }
-    );
+    const userId = request.headers.get("x-user-id");
+    logger.error("Users list error", {
+      userId,
+      message: error instanceof Error ? error.message : "Unknown error"
+    });
+    return handleDatabaseError(error, {
+      context: "GET /api/users",
+      endpoint: request.nextUrl.pathname,
+      method: request.method,
+      userId: userId || undefined
+    });
   }
 }
