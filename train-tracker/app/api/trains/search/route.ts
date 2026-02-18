@@ -1,17 +1,31 @@
 import { NextResponse } from "next/server";
 import { RapidApiError, requestRapidApi } from "@/lib/rapidApi";
+import { validationErrorResponse, successResponse, errorResponse, internalErrorResponse, getPaginationParams, createPaginationMeta } from "@/lib/api-response";
 
 const ERROR_MESSAGES = {
   404: "No trains found for that search",
   default: "Unable to search for trains right now"
 };
 
+/**
+ * GET /api/trains/search
+ * Search trains by station, route, or train number
+ * Query params:
+ *   - query (required): Station name, route, or train number to search
+ *   - page (optional, default: 1): Page number for pagination
+ *   - limit (optional, default: 10): Results per page
+ * Returns: { success: true, data: [...trains], meta: { query, page, limit, total, hasMore } }
+ */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("query")?.trim();
+  
+  const { page, limit, skip } = getPaginationParams(request.url, { page: 1, limit: 10 });
 
-  if (!query) {
-    return NextResponse.json({ message: "Enter a station, route, or train number" }, { status: 400 });
+  if (!query || query.length < 2) {
+    return validationErrorResponse({
+      query: "Search query is required and must be at least 2 characters"
+    });
   }
 
   try {
@@ -61,13 +75,22 @@ export async function GET(request: Request) {
       trainType: row?.train_type ?? row?.trainType ?? row?.type ?? null
     }));
 
-    return NextResponse.json({ query, matches: normalized });
+    // Apply pagination
+    const total = normalized.length;
+    const paginatedResults = normalized.slice(skip, skip + limit);
+
+    return successResponse(
+      paginatedResults,
+      "Trains found",
+      200,
+      createPaginationMeta(page, limit, total)
+    );
   } catch (error) {
     if (error instanceof RapidApiError) {
-      return NextResponse.json({ message: error.message }, { status: error.status });
+      return errorResponse(error.message, error.status);
     }
 
-    console.error("search-train route error", error);
-    return NextResponse.json({ message: "Unable to search for trains" }, { status: 500 });
+    console.error("Trains search error:", error);
+    return internalErrorResponse("Unable to search for trains at this moment");
   }
 }

@@ -99,6 +99,43 @@ npx prisma studio
 
 This opens a browser UI where you can confirm that migrations created the expected columns and that the seed data shows up without duplicates.
 
+## Transactions and query optimization (2.16)
+
+### Transaction scenarios
+- **User signup**: [train-tracker/app/api/auth/signup/route.ts](train-tracker/app/api/auth/signup/route.ts) uses `prisma.$transaction` to create the user and an `AuditEvent` record atomically.
+- **Contact requests**: [train-tracker/app/api/contact/route.ts](train-tracker/app/api/contact/route.ts) uses `prisma.$transaction` to create the `ContactRequest` and an `AuditEvent` log together.
+
+### Rollback logic
+- Both routes wrap the transaction in `try/catch`. If the audit insert fails, Prisma rolls back the primary write so no partial records exist.
+- **Rollback verification idea**: temporarily set `eventType` to `null` in either route, trigger the API, and confirm neither the main record nor the audit event is persisted.
+
+### Indexes added
+- `User.createdAt` to support chronological queries.
+- `ContactRequest.email`, `ContactRequest.category`, and `ContactRequest.createdAt` for common support filters.
+- `AuditEvent.eventType`, `AuditEvent.entityType`, and `AuditEvent.createdAt` for audit dashboards.
+
+Update Prisma after the schema change:
+
+```bash
+npx prisma migrate dev --name add_indexes_and_audit_events
+```
+
+### Query optimizations
+- Login route now selects only `id` and `password` to avoid over-fetching.
+- Transactional routes return only the fields required for the response.
+
+### Performance comparison
+- Capture a baseline log using `DEBUG="prisma:query" npm run dev` before applying indexes.
+- Re-run after migration and compare query latency in the terminal output.
+
+### Anti-patterns avoided
+- N+1 reads by keeping contact and audit writes in a single transaction.
+- Full-table scans by adding indexes for frequently filtered fields.
+
+### Production monitoring reflection
+- Track query latency p95/p99, error rates, and slow-query logs in Postgres.
+- Use Prisma query logging in staging plus managed DB tools (RDS Performance Insights, Azure Query Performance) for deeper analysis.
+
 ### Example terminal session
 
 ```bash
