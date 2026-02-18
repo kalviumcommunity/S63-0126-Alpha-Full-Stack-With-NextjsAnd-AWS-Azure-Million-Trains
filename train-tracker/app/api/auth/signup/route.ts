@@ -7,10 +7,8 @@ import { ERROR_CODES } from "../../../../lib/error-codes";
 import { signupSchema } from "../../../../lib/validation-schemas";
 import { parseAndValidateBody } from "../../../../lib/validation-helpers";
 
- Transaction
 export const runtime = "nodejs";
 
- API
 /**
  * POST /api/auth/signup
  * Create a new user account with Zod validation
@@ -32,9 +30,7 @@ function mapPrismaError(error: unknown): { status: number; error: string } {
 
   return { status: 500, error: "Failed to sign up." };
 }
- main
 
- main
 export async function POST(request: Request): Promise<NextResponse> {
   try {
     // Validate request body with Zod schema
@@ -82,7 +78,6 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     return createdResponse(createdUser, "Account created successfully");
   } catch (error) {
- API
     console.error("Signup error:", error);
     
     // If error is already a NextResponse (validation error), return it
@@ -90,11 +85,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       return error;
     }
     
-    return internalErrorResponse("Failed to sign up. Please try again.");
-
-    console.error("Signup error", error);
     const mapped = mapPrismaError(error);
-    return NextResponse.json({ error: mapped.error }, { status: mapped.status });
- main
+    return internalErrorResponse(mapped.error);
   }
 }

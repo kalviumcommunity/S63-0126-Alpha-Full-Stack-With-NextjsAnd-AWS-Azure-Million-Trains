@@ -2,13 +2,12 @@ import { NextResponse } from "next/server";
 import { compare } from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../lib/prisma";
-import { setSessionCookie } from "../../../../lib/auth-cookie";
+import { generateToken } from "../../../../lib/jwt-utils";
 import { unauthorizedResponse, successResponse, internalErrorResponse } from "../../../../lib/api-response";
 import { ERROR_CODES } from "../../../../lib/error-codes";
 import { loginSchema } from "../../../../lib/validation-schemas";
 import { parseAndValidateBody } from "../../../../lib/validation-helpers";
 
- Transaction
 export const runtime = "nodejs";
 function mapPrismaError(error: unknown): { status: number; error: string } {
   if (error instanceof Prisma.PrismaClientInitializationError) {
@@ -21,7 +20,6 @@ function mapPrismaError(error: unknown): { status: number; error: string } {
 
   return { status: 500, error: "Failed to log in." };
 }
- main
 
 /**
  * POST /api/auth/login
@@ -53,15 +51,26 @@ export async function POST(request: Request): Promise<NextResponse> {
       return unauthorizedResponse("Invalid email or password");
     }
 
-    // Create success response and set session cookie
+    // Generate JWT token
+    const token = generateToken({
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName
+    });
+
+    // Return token and user data
     const response = successResponse(
-      { id: user.id, email: user.email },
+      { 
+        id: user.id, 
+        email: user.email,
+        fullName: user.fullName,
+        token 
+      },
       "Login successful"
     );
-    setSessionCookie(response, user.id);
+    
     return response;
   } catch (error) {
- API
     console.error("Login error:", error);
     
     // If error is already a NextResponse (validation error), return it
@@ -69,12 +78,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       return error;
     }
     
-    return internalErrorResponse("Failed to login. Please try again.");
-
-    console.error("Login error", error);
     const mapped = mapPrismaError(error);
-    return NextResponse.json({ error: mapped.error }, { status: mapped.status });
- main
+    return internalErrorResponse(mapped.error);
   }
 }
 
