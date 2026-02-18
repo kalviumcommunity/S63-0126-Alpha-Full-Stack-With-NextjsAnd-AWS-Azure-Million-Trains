@@ -82,3 +82,22 @@ model File {
   @@index([s3Key])
 }
 
+model EmailLog {
+  id           String   @id @default(cuid())
+  provider     String   // AWS_SES, SENDGRID
+  to           String
+  subject      String
+  templateName String?
+  status       String   // sent, failed
+  messageId    String?
+  errorMessage String?
+  metadata     Json?
+  sentBy       String
+  createdAt    DateTime @default(now())
+
+  @@index([provider])
+  @@index([to])
+  @@index([status])
+  @@index([createdAt])
+}
+

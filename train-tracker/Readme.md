@@ -496,6 +496,72 @@ aws s3api put-bucket-lifecycle-configuration \
 
 See **[FILE_UPLOAD_GUIDE.md](FILE_UPLOAD_GUIDE.md)** for comprehensive file upload documentation, advanced patterns, and security considerations.
 
+## Email Service Integration (AWS SES)
+
+The application includes a transactional email API powered by AWS SES for sending welcome emails, password reset links, and security alerts.
+
+### Setup AWS SES
+
+1. Verify your sender email/domain in the AWS SES console.
+2. If your account is in sandbox mode, only verified recipients can receive emails.
+3. Add SES configuration in `.env.local`:
+
+```dotenv
+AWS_ACCESS_KEY_ID="your-aws-access-key-id"
+AWS_SECRET_ACCESS_KEY="your-aws-secret-access-key"
+AWS_REGION="us-east-1"
+SES_EMAIL_SENDER="no-reply@yourdomain.com"
+```
+
+### Send an Email
+
+```bash
+curl -X POST http://localhost:3000/api/email \
+  -H "Authorization: Bearer <jwt-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "student@example.com",
+    "subject": "Welcome to Million Trains",
+    "template": "welcome",
+    "templateData": { "userName": "Asha" },
+    "metadata": { "event": "signup" }
+  }'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "messageId": "01010189b2example123",
+  "provider": "AWS_SES"
+}
+```
+
+### Email Templates
+
+Templates live in `lib/email-templates.ts`:
+- `welcomeTemplate(userName)`
+- `passwordResetTemplate(resetUrl)`
+- `securityAlertTemplate(details)`
+
+### Logging and Tracking
+
+Every send attempt is recorded in the `EmailLog` table:
+- `status`: sent | failed
+- `messageId`: SES message ID
+- `templateName`, `metadata`, `sentBy`
+
+### Sandbox vs Production
+
+- **Sandbox mode**: only verified emails can receive mail.
+- **Production mode**: request SES production access to send to any address.
+
+### Rate Limits and Bounces
+
+- SES enforces send rate limits. Use retries and backoff for bursts.
+- Monitor bounces/complaints in the SES console.
+- Set up SNS notifications for bounce handling if needed.
+
 ### Routes command center
 
 Visit `/routes` once the dev server is running to try every RapidAPI feature without exposing your key in the browser. Each widget talks to a dedicated Next.js API route:
