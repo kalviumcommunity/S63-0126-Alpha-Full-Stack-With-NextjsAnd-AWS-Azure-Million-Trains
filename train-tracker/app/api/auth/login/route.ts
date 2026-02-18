@@ -55,7 +55,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     const token = generateToken({
       id: user.id,
       email: user.email,
-      fullName: user.fullName
+      fullName: user.fullName,
+      role: user.role
     });
 
     // Return token and user data
@@ -64,6 +65,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         id: user.id, 
         email: user.email,
         fullName: user.fullName,
+        role: user.role,
         token 
       },
       "Login successful"
