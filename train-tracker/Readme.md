@@ -820,6 +820,735 @@ Potential improvements for scalability:
    - Dynamic route parameters validated before use
    - Prevents injection attacks
 
+## Layout and Component Architecture
+
+This application implements a modular, scalable component architecture that promotes reusability, maintainability, and consistent design across all pages.
+
+### Component Hierarchy
+
+The component system is organized into two main categories:
+
+```
+components/
+├── layout/                    ← Layout Components
+│   ├── Header.tsx            → Navigation header
+│   ├── Sidebar.tsx           → Contextual sidebar navigation
+│   ├── LayoutWrapper.tsx     → Flexible layout container
+│   └── index.ts              → Barrel exports
+├── ui/                        ← Reusable UI Components
+│   ├── Button.tsx            → Multi-variant button
+│   ├── Card.tsx              → Container component
+│   ├── InputField.tsx        → Form input with validation
+│   ├── Badge.tsx             → Status/label indicators
+│   ├── Modal.tsx             → Dialog/overlay
+│   ├── Alert.tsx             → Notifications
+│   └── index.ts              → Barrel exports
+└── index.ts                   → Root barrel export
+```
+
+**Visual Hierarchy:**
+```
+LayoutWrapper
+├── Header
+│   ├── Logo/Brand
+│   ├── Navigation Links
+│   └── Auth Actions (Login/Logout)
+├── Sidebar (optional)
+│   ├── Navigation List
+│   └── Footer Info
+└── Main Content
+    └── Page-specific components
+```
+
+### Layout Components
+
+#### 1. Header Component
+
+**Purpose:** Universal navigation header with authentication awareness and active route highlighting.
+
+**Features:**
+- Authentication-aware (shows Login/Signup OR Logout)
+- Active route highlighting
+- Multiple variants (default, dashboard)
+- Responsive design
+- Client-side navigation
+
+**Usage Example:**
+```tsx
+import { Header } from "@/components";
+
+// Default variant
+<Header variant="default" />
+
+// Dashboard variant (with gradient background)
+<Header variant="dashboard" />
+```
+
+**Props:**
+- `variant?: "default" | "dashboard"` - Visual style variant
+
+#### 2. Sidebar Component
+
+**Purpose:** Contextual navigation sidebar for dashboard and admin pages.
+
+**Features:**
+- Dynamic link configuration
+- Active route highlighting with visual feedback
+- Icon + label navigation items
+- Footer help section
+- Multiple variants for different contexts
+
+**Usage Example:**
+```tsx
+import { Sidebar } from "@/components";
+
+// Default sidebar
+<Sidebar variant="default" />
+
+// Dashboard-specific sidebar
+<Sidebar variant="dashboard" />
+```
+
+**Props:**
+- `variant?: "default" | "dashboard"` - Navigation context
+
+**Sidebar Link Structure:**
+```tsx
+interface SidebarLink {
+  href: string;      // Route path
+  label: string;     // Display text
+  icon: string;      // Emoji or icon
+}
+```
+
+#### 3. LayoutWrapper Component
+
+**Purpose:** Flexible layout container that composes Header and Sidebar based on page requirements.
+
+**Features:**
+- Four layout variants: default, dashboard, sidebar, minimal
+- Conditional Header/Sidebar rendering
+- Responsive content area
+- Consistent page structure
+
+**Usage Example:**
+```tsx
+import { LayoutWrapper } from "@/components";
+
+// Page with header only
+<LayoutWrapper variant="default">
+  <YourPageContent />
+</LayoutWrapper>
+
+// Page with header + sidebar
+<LayoutWrapper variant="dashboard">
+  <DashboardContent />
+</LayoutWrapper>
+
+// Page without header or sidebar (login, landing pages)
+<LayoutWrapper variant="minimal">
+  <AuthContent />
+</LayoutWrapper>
+```
+
+**Props:**
+```tsx
+interface LayoutWrapperProps {
+  children: ReactNode;
+  variant?: "default" | "dashboard" | "sidebar" | "minimal";
+  showHeader?: boolean;    // Override header visibility
+  showSidebar?: boolean;   // Override sidebar visibility
+}
+```
+
+**Layout Variants:**
+
+| Variant | Header | Sidebar | Use Case |
+|---------|--------|---------|----------|
+| `default` | ✅ | ❌ | Public pages, marketing pages |
+| `dashboard` | ✅ | ✅ | Admin panels, user dashboards |
+| `sidebar` | ❌ | ✅ | Focused work areas |
+| `minimal` | ❌ | ❌ | Login, registration, landing pages |
+
+### UI Components
+
+#### 1. Button Component
+
+**Purpose:** Reusable button with multiple variants, sizes, and states.
+
+**Features:**
+- 5 visual variants (primary, secondary, danger, success, outline)
+- 3 size options (small, medium, large)
+- Loading state with spinner
+- Icon support
+- Full-width option
+- Disabled state
+- Accessible (extends HTMLButtonElement)
+
+**Usage Example:**
+```tsx
+import { Button } from "@/components";
+
+// Basic usage
+<Button label="Click Me" variant="primary" />
+
+// With icon
+<Button icon="🚀" label="Launch" variant="success" />
+
+// Loading state
+<Button label="Saving..." loading={true} />
+
+// Full width
+<Button label="Submit" variant="primary" fullWidth />
+
+// Custom content
+<Button variant="outline">
+  <CustomIcon /> Custom Content
+</Button>
+```
+
+**Props:**
+```tsx
+interface ButtonProps {
+  label?: string;
+  variant?: "primary" | "secondary" | "danger" | "success" | "outline";
+  size?: "small" | "medium" | "large";
+  fullWidth?: boolean;
+  loading?: boolean;
+  icon?: string;
+  children?: React.ReactNode;
+  // ... extends ButtonHTMLAttributes
+}
+```
+
+#### 2. Card Component
+
+**Purpose:** Flexible container for grouping related content with consistent styling.
+
+**Features:**
+- 4 visual variants (default, elevated, outlined, gradient)
+- Optional header with title, subtitle, and action slot
+- Optional footer section
+- Configurable padding (none, small, medium, large)
+- Clickable option
+- Composable design
+
+**Usage Example:**
+```tsx
+import { Card, Button, Badge } from "@/components";
+
+// Simple card
+<Card padding="medium">
+  <p>Content goes here</p>
+</Card>
+
+// Card with header and footer
+<Card
+  title="User Profile"
+  subtitle="View and edit details"
+  variant="elevated"
+  headerAction={<Badge label="Active" variant="success" />}
+  footer={
+    <div style={{ display: "flex", gap: "0.5rem" }}>
+      <Button label="Cancel" variant="outline" size="small" />
+      <Button label="Save" variant="primary" size="small" />
+    </div>
+  }
+>
+  <p>Profile information...</p>
+</Card>
+
+// Clickable card
+<Card clickable onClick={() => navigate("/details")}>
+  <p>Click anywhere on this card</p>
+</Card>
+```
+
+**Props:**
+```tsx
+interface CardProps {
+  title?: string;
+  subtitle?: string;
+  children: ReactNode;
+  variant?: "default" | "elevated" | "outlined" | "gradient";
+  padding?: "none" | "small" | "medium" | "large";
+  clickable?: boolean;
+  onClick?: () => void;
+  footer?: ReactNode;
+  headerAction?: ReactNode;
+}
+```
+
+#### 3. InputField Component
+
+**Purpose:** Enhanced form input with label, validation, and helper text.
+
+**Features:**
+- Built-in label support
+- Error state with red border and error message
+- Helper text for guidance
+- Icon support (positioned at start)
+- Full-width option
+- Accessible (extends HTMLInputElement)
+- Type-safe props
+
+**Usage Example:**
+```tsx
+import { InputField } from "@/components";
+
+// Basic input
+<InputField 
+  label="Email" 
+  type="email" 
+  placeholder="your@email.com"
+/>
+
+// With icon
+<InputField
+  label="Username"
+  icon="👤"
+  placeholder="Enter username"
+/>
+
+// With helper text
+<InputField
+  label="Password"
+  type="password"
+  icon="🔒"
+  helperText="Must be at least 8 characters"
+/>
+
+// With error
+<InputField
+  label="Email"
+  type="email"
+  value={email}
+  error="Invalid email address"
+/>
+```
+
+**Props:**
+```tsx
+interface InputFieldProps {
+  label?: string;
+  error?: string;
+  helperText?: string;
+  icon?: string;
+  fullWidth?: boolean;
+  // ... extends InputHTMLAttributes
+}
+```
+
+#### 4. Badge Component
+
+**Purpose:** Small label component for status indicators, categories, and metadata.
+
+**Features:**
+- 6 color variants (default, primary, success, warning, danger, info)
+- 3 size options (small, medium, large)
+- Rounded or square shape
+- Uppercase styling
+- Compact design
+
+**Usage Example:**
+```tsx
+import { Badge } from "@/components";
+
+// Status badges
+<Badge label="Active" variant="success" />
+<Badge label="Pending" variant="warning" />
+<Badge label="Error" variant="danger" />
+
+// Role badges
+<Badge label="Admin" variant="primary" size="small" />
+<Badge label="User" variant="default" size="small" />
+
+// Square badges
+<Badge label="New" variant="info" rounded={false} />
+```
+
+**Props:**
+```tsx
+interface BadgeProps {
+  label: string;
+  variant?: "default" | "primary" | "success" | "warning" | "danger" | "info";
+  size?: "small" | "medium" | "large";
+  rounded?: boolean;
+}
+```
+
+#### 5. Modal Component
+
+**Purpose:** Dialog/overlay component for focused interactions and confirmations.
+
+**Features:**
+- Accessible with keyboard support (ESC to close)
+- Click outside to close
+- Prevents body scroll when open
+- Optional header with title and close button
+- Optional footer for actions
+- 4 size options (small, medium, large, fullscreen)
+- Centered positioning
+- Smooth animations
+
+**Usage Example:**
+```tsx
+import { Modal, Button } from "@/components";
+import { useState } from "react";
+
+function MyComponent() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <>
+      <Button label="Open Modal" onClick={() => setIsOpen(true)} />
+      
+      <Modal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Confirm Action"
+        size="medium"
+        footer={
+          <>
+            <Button label="Cancel" variant="outline" onClick={() => setIsOpen(false)} />
+            <Button label="Confirm" variant="primary" onClick={handleConfirm} />
+          </>
+        }
+      >
+        <p>Are you sure you want to proceed?</p>
+      </Modal>
+    </>
+  );
+}
+```
+
+**Props:**
+```tsx
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  children: ReactNode;
+  footer?: ReactNode;
+  size?: "small" | "medium" | "large" | "fullscreen";
+}
+```
+
+#### 6. Alert Component
+
+**Purpose:** Notification component for displaying messages, warnings, and errors.
+
+**Features:**
+- 4 semantic types (info, success, warning, error)
+- Optional title
+- Optional close button
+- Custom icon support
+- Color-coded with matching icons
+- Left border accent
+- Flexible content area
+
+**Usage Example:**
+```tsx
+import { Alert } from "@/components";
+
+// Info alert
+<Alert type="info" title="Information">
+  This is an informational message.
+</Alert>
+
+// Success alert
+<Alert type="success" title="Success!">
+  Your changes have been saved.
+</Alert>
+
+// Warning alert
+<Alert type="warning" title="Warning">
+  Please review before proceeding.
+</Alert>
+
+// Error alert with close button
+<Alert 
+  type="error" 
+  title="Error" 
+  onClose={() => setShowAlert(false)}
+>
+  An error occurred. Please try again.
+</Alert>
+
+// Custom icon
+<Alert type="info" icon="💡" title="Tip">
+  Did you know you can use keyboard shortcuts?
+</Alert>
+```
+
+**Props:**
+```tsx
+interface AlertProps {
+  type?: "info" | "success" | "warning" | "error";
+  title?: string;
+  children: ReactNode;
+  onClose?: () => void;
+  icon?: string;
+}
+```
+
+### Barrel Exports
+
+The component system uses barrel exports for clean, organized imports:
+
+**Root Level (`components/index.ts`):**
+```tsx
+// Import from root - recommended
+import { Header, Sidebar, Button, Card, Badge } from "@/components";
+```
+
+**Category Level:**
+```tsx
+// Import from category
+import { Header, Sidebar } from "@/components/layout";
+import { Button, Card } from "@/components/ui";
+```
+
+**Direct Imports (not recommended):**
+```tsx
+// Avoid this - use barrel exports instead
+import Button from "@/components/ui/Button";
+```
+
+### Component Showcase
+
+A live component showcase page is available at `/components-showcase` to:
+
+- View all components in one place
+- See different variants and states
+- Test interactive features
+- Copy usage examples
+- Understand props and behavior
+
+**Features Demonstrated:**
+- All button variants (primary, secondary, danger, success, outline)
+- All button sizes (small, medium, large)
+- Button states (normal, loading, disabled)
+- Badge variants and sizes
+- Input fields with labels, icons, errors
+- Card variants and layouts
+- Alert types
+- Modal functionality
+
+### Layout Examples
+
+Three example pages demonstrate different layout patterns:
+
+1. **Default Layout** (`/layout-examples/default-layout`)
+   - Header only, no sidebar
+   - Best for: Public pages, marketing content
+   - Features: Hero section, feature grid, contact form
+
+2. **Dashboard Layout** (`/layout-examples/dashboard-layout`)
+   - Header + Sidebar
+   - Best for: Admin panels, user dashboards
+   - Features: Stats cards, activity feed, sidebar navigation
+
+3. **Minimal Layout** (`/layout-examples/minimal-layout`)
+   - No header, no sidebar
+   - Best for: Login, registration, focused single-purpose pages
+   - Features: Centered card, minimal distractions
+
+### Design Principles
+
+#### 1. **Reusability**
+- Components accept props for configuration
+- No hard-coded values or styles
+- Variants cover common use cases
+- Composable design patterns
+
+#### 2. **Maintainability**
+- Single source of truth for each component
+- Centralized styling logic
+- TypeScript for type safety
+- Clear prop interfaces
+
+#### 3. **Accessibility**
+- Semantic HTML elements
+- ARIA attributes where needed
+- Keyboard navigation support
+- Focus management in modals
+- Color contrast compliance
+
+#### 4. **Consistency**
+- Shared color palette (#2563eb primary, etc.)
+- Consistent spacing (0.5rem increments)
+- Standard border radius (8px for buttons, 12px for cards)
+- Unified transition timing (0.2s ease)
+
+#### 5. **Scalability**
+- Modular file structure
+- Easy to add new components
+- Barrel exports simplify imports
+- Clear naming conventions
+
+### Component Communication
+
+**Parent to Child (Props):**
+```tsx
+// Pass data and callbacks via props
+<Button 
+  label="Save" 
+  variant="primary" 
+  onClick={handleSave}
+  loading={isSaving}
+/>
+```
+
+**Child to Parent (Callbacks):**
+```tsx
+// Child invokes callback with data
+<Modal 
+  isOpen={isOpen}
+  onClose={() => setIsOpen(false)}  // Callback
+>
+  <MyForm onSubmit={handleFormSubmit} />
+</Modal>
+```
+
+**Composition Pattern:**
+```tsx
+// Components wrap and enhance children
+<Card title="Dashboard">
+  <Stats />
+  <Chart />
+  <ActivityFeed />
+</Card>
+```
+
+### Styling Approach
+
+**Inline Styles with TypeScript:**
+- Type-safe styling with `CSSProperties`
+- No external CSS dependencies (besides globals)
+- Scoped to component
+- Easy to theme and customize
+
+```tsx
+const styles: Record<string, CSSProperties> = {
+  button: {
+    padding: "0.75rem 1.5rem",
+    borderRadius: "8px",
+    fontWeight: 600,
+    // ...
+  },
+};
+```
+
+**Benefits:**
+- No class name conflicts
+- Co-located with component logic
+- Type checking for CSS properties
+- Easy to pass dynamic values
+
+### Future Enhancements
+
+1. **Theming System**
+   - Light/dark mode toggle
+   - Custom color schemes
+   - Theme provider context
+
+2. **Additional Components**
+   - Dropdown/Select
+   - Tooltip
+   - Toast notifications
+   - Tabs
+   - Accordion
+   - Pagination
+   - Table
+
+3. **Animation Library**
+   - Framer Motion integration
+   - Smooth page transitions
+   - Micro-interactions
+
+4. **Form Management**
+   - Form wrapper component
+   - Validation integration
+   - Error handling
+   - Submit states
+
+5. **Storybook Integration**
+   - Visual component documentation
+   - Interactive props playground
+   - Accessibility testing
+   - Visual regression testing
+
+### Testing Components
+
+**Manual Testing:**
+1. Visit `/components-showcase` to interact with all components
+2. Test different variants and states
+3. Verify responsive behavior
+4. Check keyboard navigation
+
+**Layout Testing:**
+1. Visit `/layout-examples/default-layout` for header-only layout
+2. Visit `/layout-examples/dashboard-layout` for header + sidebar
+3. Visit `/layout-examples/minimal-layout` for no navigation
+
+**Integration Testing:**
+- Components work together in real pages
+- Dashboard uses Card, Button, Badge
+- Forms use InputField, Button, Alert
+- User profiles use Card, Badge, Button
+
+### Best Practices
+
+#### ✅ DO:
+- Use barrel exports for imports
+- Accept props for configuration
+- Include TypeScript interfaces
+- Provide meaningful prop defaults
+- Document component purpose and usage
+- Keep components focused (single responsibility)
+- Use semantic HTML elements
+- Support keyboard interactions
+
+#### ❌ DON'T:
+- Hard-code values that should be props
+- Create deeply nested component trees
+- Mix business logic with UI components
+- Ignore accessibility requirements
+- Skip prop type definitions
+- Create god components (too many responsibilities)
+- Override component styles from parent
+
+### Component Checklist
+
+When creating a new component:
+
+- [ ] Define TypeScript interface for props
+- [ ] Provide sensible default prop values
+- [ ] Include JSDoc comments for documentation
+- [ ] Support common variants via props
+- [ ] Use semantic HTML elements
+- [ ] Add to appropriate barrel export
+- [ ] Create usage example
+- [ ] Test in component showcase
+- [ ] Document in README
+- [ ] Consider accessibility (ARIA, keyboard nav)
+
+### Summary
+
+The component architecture provides:
+
+✅ **Modular Design** - Reusable components across the application  
+✅ **Type Safety** - TypeScript interfaces for all props  
+✅ **Flexibility** - Multiple variants and configuration options  
+✅ **Consistency** - Shared design language and patterns  
+✅ **Accessibility** - Keyboard navigation and ARIA support  
+✅ **Maintainability** - Single source of truth for each component  
+✅ **Developer Experience** - Clean imports, clear documentation  
+✅ **Scalability** - Easy to extend with new components  
+
+This architecture ensures that the UI remains consistent, maintainable, and accessible as the application grows.
+
 ## Keeping secrets out of git
 
 - `.gitignore` blocks every `.env*` file while explicitly allowing `.env.example`.
