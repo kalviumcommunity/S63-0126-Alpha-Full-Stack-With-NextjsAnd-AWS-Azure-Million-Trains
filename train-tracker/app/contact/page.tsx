@@ -1,110 +1,110 @@
 'use client';
 
-import type { CSSProperties, FormEvent, ReactElement } from "react";
+import type { CSSProperties, ReactElement } from "react";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import FormInput from "@/components/FormInput";
+import FormTextarea from "@/components/FormTextarea";
+import FormSelect from "@/components/FormSelect";
 
+// ============================================
+// 1. Define Category Options
+// ============================================
 const categories = [
-  "Claims & Complaints",
-  "Booking Issues",
-  "Suggestions",
-  "Other"
+  { value: "claims", label: "Claims & Complaints" },
+  { value: "booking", label: "Booking Issues" },
+  { value: "suggestions", label: "Suggestions" },
+  { value: "other", label: "Other" },
 ];
 
-type Step = 1 | 2 | 3;
+// ============================================
+// 2. Define Zod Validation Schema
+// ============================================
+const contactSchema = z.object({
+  category: z.string().min(1, "Please select a category"),
+  fullName: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .max(50, "Name cannot exceed 50 characters"),
+  email: z
+    .string()
+    .email("Please enter a valid email address")
+    .min(1, "Email is required"),
+  referenceCode: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || /^[A-Z0-9]{6,12}$/i.test(val),
+      "Reference code must be 6-12 alphanumeric characters"
+    ),
+  message: z
+    .string()
+    .min(10, "Message must be at least 10 characters long")
+    .max(1000, "Message cannot exceed 1000 characters"),
+  attachmentUrl: z
+    .string()
+    .url("Please enter a valid URL")
+    .optional()
+    .or(z.literal("")),
+});
 
-type FormState = {
-  category: string;
-  hasTicket: boolean;
-  referenceCode: string;
-  message: string;
-  attachmentUrl: string;
-  fullName: string;
-  email: string;
-};
-
-const initialState: FormState = {
-  category: categories[0],
-  hasTicket: false,
-  referenceCode: "",
-  message: "",
-  attachmentUrl: "",
-  fullName: "",
-  email: ""
-};
+// ============================================
+// 3. Derive TypeScript Type from Schema
+// ============================================
+type ContactFormData = z.infer<typeof contactSchema>;
 
 export default function ContactPage(): ReactElement {
-  const [step, setStep] = useState<Step>(1);
-  const [form, setForm] = useState<FormState>(initialState);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  function updateField<Key extends keyof FormState>(key: Key, value: FormState[Key]): void {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
+  // ============================================
+  // 4. Initialize React Hook Form with Zod Resolver
+  // ============================================
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+    watch,
+  } = useForm<ContactFormData>({
+    resolver: zodResolver(contactSchema),
+    defaultValues: {
+      category: "claims",
+      fullName: "",
+      email: "",
+      referenceCode: "",
+      message: "",
+      attachmentUrl: "",
+    },
+    mode: "onBlur",
+  });
 
-  function validateStep(currentStep: Step): boolean {
-    if (currentStep === 2 && !form.message.trim()) {
-      setError("Please describe your issue before continuing.");
-      return false;
-    }
+  const hasReferenceCode = watch("referenceCode");
 
-    if (currentStep === 2 && form.hasTicket && !form.referenceCode.trim()) {
-      setError("Include your reference code when you have a ticket.");
-      return false;
-    }
-
-    if (currentStep === 3) {
-      if (!form.fullName.trim()) {
-        setError("Full name is required.");
-        return false;
-      }
-      if (!/.+@.+\..+/.test(form.email)) {
-        setError("Enter a valid email address.");
-        return false;
-      }
-    }
-
-    setError(null);
-    return true;
-  }
-
-  function next(): void {
-    if (step === 3) return;
-    if (validateStep(step)) {
-      setStep((prev) => (prev + 1) as Step);
-    }
-  }
-
-  function previous(): void {
-    if (step === 1) return;
-    setError(null);
-    setStep((prev) => (prev - 1) as Step);
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault();
-    if (!validateStep(3)) {
-      return;
-    }
-
-    setIsSubmitting(true);
+  // ============================================
+  // 5. Form Submission Handler
+  // ============================================
+  async function onSubmit(data: ContactFormData): Promise<void> {
     setStatus(null);
     setError(null);
+
+    console.log("📝 Contact form validation passed:", data);
 
     try {
       const response = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          category: form.category,
-          hasTicket: form.hasTicket,
-          referenceCode: form.hasTicket ? form.referenceCode : undefined,
-          message: form.message,
-          attachmentUrl: form.attachmentUrl || undefined,
-          fullName: form.fullName,
-          email: form.email
-        })
+          category: data.category,
+          hasTicket: !!data.referenceCode,
+          referenceCode: data.referenceCode || undefined,
+          message: data.message,
+          attachmentUrl: data.attachmentUrl || undefined,
+          fullName: data.fullName,
+          email: data.email,
+        }),
       });
 
       const payload = await response.json();
@@ -112,165 +112,219 @@ export default function ContactPage(): ReactElement {
       if (!response.ok) {
         setError(payload?.error ?? "Unable to submit your request.");
       } else {
-        setStatus("Request received. Our support team will reach out soon.");
-        setForm(initialState);
-        setStep(1);
+        setStatus("✅ Request received. Our support team will reach out soon.");
+        console.log("✅ Contact form submitted successfully");
+        reset(); // Clear form fields
       }
     } catch (err) {
+      console.error("❌ Contact form error:", err);
       setError(err instanceof Error ? err.message : "Something went wrong.");
-    } finally {
-      setIsSubmitting(false);
     }
   }
 
+  // ============================================
+  // 6. Render Form with Validation
+  // ============================================
   return (
     <main style={mainStyle}>
       <section style={cardStyle}>
-        <h1 style={{ marginTop: 0 }}>Contact Us / Claims & Complaints</h1>
-        <p style={{ color: "#475569", marginBottom: "1.5rem" }}>
-          Tell us about your issue in a few quick steps.
+        <h1 style={{ marginTop: 0, fontSize: "2rem", marginBottom: "0.5rem" }}>
+          Contact Us
+        </h1>
+        <p style={{ color: "#475569", marginBottom: "2rem" }}>
+          Have a question or concern? Fill out the form below and we'll get back to you
+          as soon as possible. ✅ Powered by React Hook Form + Zod validation.
         </p>
 
-        <div style={stepsWrapperStyle}>
-          {[1, 2, 3].map((value) => (
-            <div key={value} style={getStepStyle(step >= value)}>
-              Step {value}
-            </div>
-          ))}
-        </div>
+        {/* React Hook Form with Zod Validation */}
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+          {/* Category Selection */}
+          <FormSelect
+            label="Issue Category"
+            name="category"
+            options={categories}
+            register={register}
+            error={errors.category}
+            required
+          />
 
-        <form onSubmit={handleSubmit} style={{ display: "grid", gap: "1.5rem" }}>
-          {step === 1 && (
-            <div>
-              <h2 style={sectionHeadingStyle}>1. Issue Category</h2>
-              <div style={{ display: "grid", gap: "0.8rem" }}>
-                {categories.map((option) => (
-                  <label key={option} style={optionLabelStyle}>
-                    <input
-                      type="radio"
-                      name="category"
-                      value={option}
-                      checked={form.category === option}
-                      onChange={() => updateField("category", option)}
-                      required
-                    />
-                    <span>{option}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Full Name */}
+          <FormInput
+            label="Full Name"
+            name="fullName"
+            type="text"
+            register={register}
+            error={errors.fullName}
+            placeholder="Jane Passenger"
+            required
+          />
 
-          {step === 2 && (
-            <div>
-              <h2 style={sectionHeadingStyle}>2. Request Details</h2>
-              <label style={toggleLabelStyle}>
-                <input
-                  type="checkbox"
-                  checked={form.hasTicket}
-                  onChange={(event) => updateField("hasTicket", event.target.checked)}
-                />
-                <span>I have a ticket or reference code</span>
-              </label>
-              {form.hasTicket && (
-                <label style={fieldLabelStyle}>
-                  Reference Code
-                  <input
-                    type="text"
-                    value={form.referenceCode}
-                    onChange={(event) => updateField("referenceCode", event.target.value)}
-                    placeholder="e.g. PNR123456"
-                    style={inputStyle}
-                  />
-                </label>
-              )}
-              <label style={fieldLabelStyle}>
-                Message
-                <textarea
-                  value={form.message}
-                  onChange={(event) => updateField("message", event.target.value)}
-                  required
-                  rows={5}
-                  style={{ ...inputStyle, resize: "vertical" }}
-                  placeholder="Describe what happened and how we can help."
-                />
-              </label>
-              <label style={fieldLabelStyle}>
-                Attachment URL (optional)
-                <input
-                  type="url"
-                  value={form.attachmentUrl}
-                  onChange={(event) => updateField("attachmentUrl", event.target.value)}
-                  placeholder="https://drive.google.com/..."
-                  style={inputStyle}
-                />
-              </label>
-            </div>
-          )}
+          {/* Email */}
+          <FormInput
+            label="Email"
+            name="email"
+            type="email"
+            register={register}
+            error={errors.email}
+            placeholder="you@example.com"
+            required
+          />
 
-          {step === 3 && (
-            <div>
-              <h2 style={sectionHeadingStyle}>3. Your Details</h2>
-              <label style={fieldLabelStyle}>
-                Full Name
-                <input
-                  type="text"
-                  value={form.fullName}
-                  onChange={(event) => updateField("fullName", event.target.value)}
-                  required
-                  placeholder="Jane Passenger"
-                  style={inputStyle}
-                />
-              </label>
-              <label style={fieldLabelStyle}>
-                Email
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(event) => updateField("email", event.target.value)}
-                  required
-                  placeholder="you@example.com"
-                  style={inputStyle}
-                />
-              </label>
-            </div>
-          )}
+          {/* Reference Code (Optional) */}
+          <FormInput
+            label="Reference Code"
+            name="referenceCode"
+            type="text"
+            register={register}
+            error={errors.referenceCode}
+            placeholder="e.g. PNR123456 (optional)"
+          />
 
-          <div style={{ display: "flex", gap: "0.75rem", justifyContent: "space-between" }}>
-            <button
-              type="button"
-              onClick={previous}
-              disabled={step === 1}
-              style={{ ...secondaryButtonStyle, opacity: step === 1 ? 0.5 : 1 }}
-            >
-              Back
-            </button>
-            {step < 3 ? (
-              <button type="button" onClick={next} style={primaryButtonStyle}>
-                Next
-              </button>
-            ) : (
-              <button type="submit" disabled={isSubmitting} style={primaryButtonStyle}>
-                {isSubmitting ? "Submitting..." : "Submit"}
-              </button>
-            )}
-          </div>
+          {/* Message */}
+          <FormTextarea
+            label="Message"
+            name="message"
+            register={register}
+            error={errors.message}
+            placeholder="Describe your issue or question in detail..."
+            rows={6}
+            required
+          />
+
+          {/* Attachment URL (Optional) */}
+          <FormInput
+            label="Attachment URL"
+            name="attachmentUrl"
+            type="url"
+            register={register}
+            error={errors.attachmentUrl}
+            placeholder="https://drive.google.com/... (optional)"
+          />
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            style={{
+              width: "100%",
+              padding: "1rem 1.5rem",
+              borderRadius: "12px",
+              border: "none",
+              background: isSubmitting
+                ? "#94a3b8"
+                : "linear-gradient(120deg, #0f3a7d, #1e5ba8)",
+              color: "#ffffff",
+              fontWeight: 700,
+              cursor: isSubmitting ? "not-allowed" : "pointer",
+              boxShadow: isSubmitting
+                ? "none"
+                : "0 12px 30px rgba(37, 99, 235, 0.25)",
+              transition: "all 0.3s ease",
+              marginTop: "0.5rem",
+            }}
+          >
+            {isSubmitting ? "Submitting..." : "Submit Request"}
+          </button>
         </form>
 
-        {status && <p style={{ color: "#047857", marginTop: "1rem" }}>{status}</p>}
-        {error && <p style={{ color: "#dc2626", marginTop: "1rem" }}>{error}</p>}
+        {/* Success Message */}
+        {status && (
+          <div
+            style={{
+              marginTop: "1.5rem",
+              padding: "1rem",
+              backgroundColor: "#d1fae5",
+              color: "#047857",
+              borderRadius: "12px",
+              border: "1px solid #6ee7b7",
+              fontWeight: 500,
+            }}
+          >
+            {status}
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div
+            style={{
+              marginTop: "1.5rem",
+              padding: "1rem",
+              backgroundColor: "#fee2e2",
+              color: "#dc2626",
+              borderRadius: "12px",
+              border: "1px solid #fca5a5",
+              fontWeight: 500,
+            }}
+          >
+            ❌ {error}
+          </div>
+        )}
+
+        {/* Form Stats */}
+        <div
+          style={{
+            marginTop: "2rem",
+            padding: "1rem",
+            backgroundColor: "#f1f5f9",
+            borderRadius: "12px",
+            fontSize: "0.85rem",
+            color: "#64748b",
+          }}
+        >
+          <strong style={{ display: "block", marginBottom: "0.5rem", color: "#334155" }}>
+            📊 Form Validation Stats:
+          </strong>
+          <ul style={{ margin: 0, paddingLeft: "1.25rem", lineHeight: "1.6" }}>
+            <li>
+              <strong>Errors detected:</strong> {Object.keys(errors).length}
+            </li>
+            <li>
+              <strong>Submitting:</strong> {isSubmitting ? "Yes" : "No"}
+            </li>
+            <li>
+              <strong>Has Reference Code:</strong> {hasReferenceCode ? "Yes" : "No"}
+            </li>
+          </ul>
+        </div>
+
+        {/* Validation Info */}
+        <div
+          style={{
+            marginTop: "1rem",
+            padding: "1rem",
+            backgroundColor: "#eff6ff",
+            borderRadius: "12px",
+            fontSize: "0.85rem",
+            color: "#1e40af",
+          }}
+        >
+          <strong style={{ display: "block", marginBottom: "0.5rem" }}>
+            💡 Validation Rules:
+          </strong>
+          <ul style={{ margin: 0, paddingLeft: "1.25rem", lineHeight: "1.6" }}>
+            <li>Name: 2-50 characters</li>
+            <li>Email: Valid email format</li>
+            <li>Reference Code: 6-12 alphanumeric (optional)</li>
+            <li>Message: 10-1000 characters</li>
+            <li>Attachment: Valid URL format (optional)</li>
+          </ul>
+        </div>
       </section>
     </main>
   );
 }
 
+// ============================================
+// 7. Styles
+// ============================================
 const mainStyle: CSSProperties = {
   minHeight: "100vh",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   padding: "2rem",
-  background: "linear-gradient(140deg, #dbeafe 0%, #eff6ff 50%, #e0e7ff 100%)"
+  background: "linear-gradient(140deg, #dbeafe 0%, #eff6ff 50%, #e0e7ff 100%)",
 };
 
 const cardStyle: CSSProperties = {
@@ -281,83 +335,5 @@ const cardStyle: CSSProperties = {
   padding: "2.5rem",
   border: "1px solid #dbeafe",
   boxShadow: "0 35px 80px rgba(15, 23, 42, 0.15)",
-  color: "#0f1c2e"
-};
-
-const stepsWrapperStyle: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, 1fr)",
-  gap: "0.75rem",
-  marginBottom: "2rem"
-};
-
-function getStepStyle(isActive: boolean): CSSProperties {
-  return {
-    padding: "0.6rem",
-    borderRadius: "8px",
-    textAlign: "center",
-    fontWeight: 600,
-    background: isActive ? "#0f3a7d" : "#e2e8f0",
-    color: isActive ? "#ffffff" : "#475569",
-    boxShadow: isActive ? "0 12px 30px rgba(37, 99, 235, 0.25)" : "none"
-  };
-}
-
-const sectionHeadingStyle: CSSProperties = {
-  marginTop: 0,
-  marginBottom: "1rem"
-};
-
-const fieldLabelStyle: CSSProperties = {
-  display: "grid",
-  gap: "0.4rem"
-};
-
-const optionLabelStyle: CSSProperties = {
-  display: "flex",
-  gap: "0.6rem",
-  alignItems: "center",
-  padding: "0.6rem 0.9rem",
-  borderRadius: "12px",
-  border: "1px solid #c7d7ff",
-  background: "#f8fbff"
-};
-
-const toggleLabelStyle: CSSProperties = {
-  display: "flex",
-  gap: "0.5rem",
-  alignItems: "center",
-  marginBottom: "0.5rem",
-  color: "#1f2937"
-};
-
-const inputStyle: CSSProperties = {
-  padding: "0.85rem 1rem",
-  borderRadius: "10px",
-  border: "1px solid #c7d7ff",
-  background: "#f8fbff",
   color: "#0f1c2e",
-  boxShadow: "0 8px 20px rgba(15, 23, 42, 0.08)"
-};
-
-const primaryButtonStyle: CSSProperties = {
-  padding: "0.9rem 1.75rem",
-  borderRadius: "12px",
-  border: "none",
-  background: "linear-gradient(120deg, #0f3a7d, #1e5ba8)",
-  color: "#ffffff",
-  fontWeight: 700,
-  cursor: "pointer",
-  boxShadow: "0 12px 30px rgba(37, 99, 235, 0.25)"
-};
-
-const secondaryButtonStyle: CSSProperties = {
-  padding: "0.9rem 1.75rem",
-  borderRadius: "12px",
-  border: "1px solid #c7d7ff",
-  background: "#ffffff",
-  color: "#1e293b",
-  fontWeight: 600,
-  cursor: "pointer",
-  boxShadow: "0 8px 18px rgba(15, 23, 42, 0.08)"
 };
