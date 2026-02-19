@@ -50,15 +50,7 @@ npm run build:development  # local production build against dev services
 npm run build:staging      # staging build (CI/CD recommended)
 npm run build:production   # final build for release
 npm run build              # alias for production build
-```
 
-After each build, run `npx next start` (or deploy to your platform) with the same environment variables present at runtime. CI pipelines should fail fast if any variable is missing, so wire up your workflow to check for required keys before running the commands.
-
-## Prisma database workflow
-
-### 1. Configure `DATABASE_URL`
-- Add the connection string (include `?sslmode=require` for Supabase) to whichever `.env.*` file matches the command you are running. Prisma itself reads `.env` by default, so export `DATABASE_URL` manually or create a `.env` shim when working locally.
-- Example local URL: `postgresql://postgres:postgres@127.0.0.1:5432/train_tracker?schema=public`. Example Supabase URL: `postgresql://postgres:<password>@<host>:5432/postgres?sslmode=require`.
 - Set `DATABASE_SSL=true` only when talking to cloud providers that require TLS; local Docker setups can leave it unset/false.
 
 ### (Optional) spin up Postgres locally
@@ -73,25 +65,9 @@ npx prisma migrate deploy
 
 # 3. Seed deterministic fixtures
 npx prisma db seed
-```
 
-The compose file maps port `5432` to the host, so the default `.env.local` shipped with the repo connects to this container out of the box. Stop it with `docker compose down` when you are done. To point back to Supabase, just restore the previous `DATABASE_URL` (and flip `DATABASE_SSL=true`).
-
-### 2. Create and apply migrations
-Run the migration suite anytime the schema changes. The three existing steps are:
-
-```bash
-npx prisma migrate dev --name init_schema
 npx prisma migrate dev --name contact_request
 npx prisma migrate dev --name add-updated-at
-```
-
-`add-updated-at` introduces the `updatedAt @updatedAt` columns on both `User` and `ContactRequest`, enabling basic audit tracking.
-
-### 3. Modify or extend the schema
-- Change `prisma/schema.prisma` (for example, add a `Project` model) and generate a new migration with `npx prisma migrate dev --name add_project_table`.
-- Use `--create-only` if reviewers should inspect the SQL before it is applied to shared databases.
-- After every migration, refresh the Prisma Client so TypeScript picks up the latest types: `npx prisma generate`.
 
 ### 4. Rollback or reset safely
 - Local reset: `npx prisma migrate reset` drops the database, reapplies all migrations, and optionally reruns the seed script.
@@ -104,15 +80,7 @@ npx prisma migrate dev --name add-updated-at
 
 ```bash
 npx prisma db seed
-```
 
-Running the seed multiple times simply updates the existing rows, so you get predictable fixtures for manual testing.
-
-### 6. Verify via Prisma Studio
-
-```bash
-npx prisma studio
-```
 
 This opens a browser UI where you can confirm that migrations created the expected columns and that the seed data shows up without duplicates.
 
@@ -130,7 +98,6 @@ $ npx prisma db seed
 Environment variables loaded from .env.local
 Running seed command `ts-node --esm prisma/seed.ts` ...
 Seed data inserted successfully
-``` 
 
 Capture the successful command output (or screenshots) when recording your walkthrough so reviewers can see the migrations and seeding in action.
 
@@ -218,10 +185,6 @@ export async function GET(request: NextRequest) {
   );
 
   return successResponse(usersData);
-}
-```
-
-#### Example 2: Invalidate on Update
 
 ```typescript
 import { invalidateUserCache } from "@/lib/cache-invalidation";
@@ -235,10 +198,6 @@ export async function POST(request: NextRequest) {
   await invalidateUserCache.userStats();
 
   return successResponse(user);
-}
-```
-
-### TTL Policies
 
 Cache expiry times are tuned for data freshness:
 
@@ -356,32 +315,15 @@ AWS_BUCKET_NAME="train-tracker-uploads"
 
 **4. Set CORS policy on bucket:**
 ```json
-[
-  {
-    "AllowedMethods": ["GET", "PUT", "POST"],
-    "AllowedOrigins": ["http://localhost:3000", "https://yourdomain.com"],
+
     "AllowedHeaders": ["*"],
     "ExposeHeaders": ["ETag"]
-  }
-]
-```
 
-### File Upload Flow
 
 ```
 1. Client requests pre-signed URL
    POST /api/upload
    { fileName, fileSize, mimeType }
-   ↓
-2. Backend validates file and generates URL (60s expiry)
-   ↓
-3. Client uploads directly to S3 using URL
-   PUT <pre-signed-url>
-   ↓
-4. Client stores metadata in database
-   POST /api/files
-   { fileKey, originalName, fileSize, ... }
-   ↓
 5. File is accessible from S3 URL
 ```
 
@@ -572,6 +514,312 @@ Visit `/routes` once the dev server is running to try every RapidAPI feature wit
 
 Because the UI only calls local endpoints, you can rotate RapidAPI keys or host overrides without changing the frontend.
 
+## Page Routing and Dynamic Routes
+
+This application implements a comprehensive routing system using Next.js 13+ App Router with file-based routing conventions. The routing architecture includes public pages, protected routes with authentication, dynamic user profiles, and SEO-optimized navigation.
+
+### Routing Architecture
+
+The App Router uses a file-based system where each folder inside `app/` represents a route:
+
+```
+app/
+├── page.tsx                    → Home (/) - Public
+├── layout.tsx                  → Global layout with navigation
+├── not-found.tsx               → Custom 404 page
+├── login/
+│   └── page.tsx                → /login - Public
+├── signup/
+│   └── page.tsx                → /signup - Public
+├── about/
+│   └── page.tsx                → /about - Public
+├── contact/
+│   └── page.tsx                → /contact - Public
+├── faq/
+│   └── page.tsx                → /faq - Public
+├── routes/
+│   └── page.tsx                → /routes - Public (API testing dashboard)
+├── dashboard/
+│   └── page.tsx                → /dashboard - Protected
+└── users/
+    ├── page.tsx                → /users - Protected (list all users)
+    └── [id]/
+        └── page.tsx            → /users/:id - Protected (dynamic user profile)
+```
+
+### Route Types
+
+#### 1. Public Routes (Accessible to Everyone)
+
+- `/` - Homepage with hero video and feature showcase
+- `/login` - User authentication page
+- `/signup` - New user registration
+- `/about` - About the application
+- `/contact` - Contact form
+- `/faq` - Frequently asked questions
+- `/routes` - API testing dashboard for train features
+
+#### 2. Protected Routes (Require Authentication)
+
+- `/dashboard` - Main dashboard with train search and tracking features
+- `/users` - User listing page (displays all registered users)
+- `/users/[id]` - Dynamic user profile page (e.g., `/users/1`, `/users/2`)
+
+### Middleware-Based Authentication
+
+The application uses middleware (`middleware.ts` at project root) to enforce authentication:
+
+```typescript
+export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  // Public routes - accessible to everyone
+  const publicRoutes = ["/", "/login", "/signup", "/about", "/contact", "/faq", "/routes"];
+  
+  const isPublicRoute = publicRoutes.some(route => 
+    pathname === route || pathname.startsWith(route + "/")
+  );
+  
+  // Allow public routes and API routes
+  if (isPublicRoute || pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
+
+  // Protected routes require valid JWT token
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/users")) {
+    const token = req.cookies.get("token")?.value;
+
+    if (!token) {
+      // Redirect to login with return URL
+      const loginUrl = new URL("/login", req.url);
+      loginUrl.searchParams.set("next", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    try {
+      jwt.verify(token, JWT_SECRET);
+      return NextResponse.next();
+    } catch {
+      // Invalid token - redirect to login
+      const loginUrl = new URL("/login", req.url);
+      loginUrl.searchParams.set("next", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  return NextResponse.next();
+}
+```
+
+**Key Features:**
+- Token-based authentication using JWT stored in HTTP-only cookies
+- Automatic redirect to login with return URL preservation
+- Clear separation between public and protected routes
+- API routes handled separately (have their own auth logic)
+
+### Dynamic Routes Implementation
+
+Dynamic routes allow parameterized URLs for user profiles:
+
+**User List Page** (`/users`):
+- Fetches all users from the `/api/users` endpoint
+- Displays user cards with avatar, name, email, and role
+- Each card links to the individual user profile
+- Includes breadcrumb navigation: Home → Dashboard → Users
+- Responsive grid layout adapts to screen size
+
+**User Profile Page** (`/users/[id]`):
+- Accepts dynamic `id` parameter from URL
+- Fetches user data from `/api/users/${id}`
+- Displays comprehensive profile with:
+  - Avatar with user initials
+  - Full name and email
+  - Role badge
+  - Member since date
+  - Breadcrumb navigation: Home → Users → [User Name]
+- Error handling for:
+  - Loading states with spinner
+  - 404 user not found
+  - Authentication failures (redirects to login)
+  - Network errors
+
+**Example Dynamic Routes:**
+```
+/users/1  → Shows profile for user with ID 1
+/users/2  → Shows profile for user with ID 2
+/users/abc → Shows profile for user with ID "abc"
+```
+
+### Navigation System
+
+The application includes a global navigation bar (`GlobalNavbar.client.tsx`) that:
+
+1. **Adapts to Authentication State:**
+   - When logged out: Shows Login and Sign Up buttons
+   - When logged in: Shows Dashboard, Users links, and Logout button
+
+2. **Active Route Highlighting:**
+   - Current page highlighted with blue color and underline
+   - Visual feedback helps users understand their location
+
+3. **Responsive Design:**
+   - Desktop: Horizontal navigation with all links visible
+   - Mobile: Hamburger menu with collapsible navigation
+
+4. **Breadcrumb Navigation:**
+   - User list and profile pages include breadcrumbs
+   - Improves SEO by establishing page hierarchy
+   - Enhances user experience with clear navigation paths
+
+### Custom 404 Page
+
+The application includes a custom `not-found.tsx` page that provides:
+
+- **Animated 404 Number:** Floating animation on the error digits
+- **Clear Error Message:** Explains the page doesn't exist
+- **Navigation Options:** 
+  - Primary button to go home
+  - Secondary button to dashboard
+  - Quick links to common pages (Login, Signup, About, Contact, Routes, FAQ)
+- **SEO-Friendly:** Custom 404 helps search engines understand missing pages
+- **User-Friendly:** Doesn't leave users at a dead end
+
+### SEO and Routing Best Practices
+
+1. **File-Based Routing:**
+   - Clean URLs without query parameters
+   - Semantic route structure (e.g., `/users/[id]` instead of `/user?id=123`)
+   - Better for search engine crawling
+
+2. **Breadcrumb Navigation:**
+   - Helps search engines understand site structure
+   - Improves user experience with clear navigation paths
+   - Visual hierarchy: Home → Section → Page
+
+3. **Client-Side Navigation:**
+   - Uses Next.js `Link` component for instant transitions
+   - Pre-fetches linked pages for faster navigation
+   - Maintains SPA experience while supporting SEO
+
+4. **Error Handling:**
+   - Custom 404 page prevents search engines from indexing broken links
+   - Graceful error states with helpful messages
+   - Redirect unauthenticated users with preserved destination
+
+5. **Metadata and Titles:**
+   - Each page can define its own metadata
+   - Helps with social sharing and search rankings
+
+### Authentication Flow
+
+1. **Accessing Protected Route:**
+   ```
+   User visits /dashboard
+   → Middleware checks for token
+   → No token found
+   → Redirect to /login?next=/dashboard
+   ```
+
+2. **Login Process:**
+   ```
+   User enters credentials
+   → POST to /api/auth/login
+   → Server validates and issues JWT
+   → Token stored in HTTP-only cookie
+   → Redirect to original destination (/dashboard)
+   ```
+
+3. **Logout Process:**
+   ```
+   User clicks Logout
+   → Client removes token cookie
+   → Redirect to home page
+   → Protected routes now inaccessible
+   ```
+
+### Route Testing
+
+To test the routing system:
+
+1. **Public Routes (No Auth Required):**
+   ```bash
+   # Should work without authentication
+   curl http://localhost:3000/
+   curl http://localhost:3000/login
+   curl http://localhost:3000/about
+   ```
+
+2. **Protected Routes (Auth Required):**
+   ```bash
+   # Without token - should redirect to login
+   curl -v http://localhost:3000/dashboard
+   
+   # With token - should work
+   curl -v http://localhost:3000/dashboard \
+     -H "Cookie: token=your-jwt-token"
+   ```
+
+3. **Dynamic Routes:**
+   ```bash
+   # Should return user profile if authenticated and user exists
+   curl http://localhost:3000/users/1 \
+     -H "Cookie: token=your-jwt-token"
+   ```
+
+### Routing Performance
+
+- **Server Components:** Pages render on server for faster initial load
+- **Client Components:** Interactive elements use `'use client'` directive
+- **Lazy Loading:** Routes loaded on-demand
+- **Prefetching:** Next.js automatically prefetches visible links
+- **Code Splitting:** Each route bundled separately
+
+### Future Routing Enhancements
+
+Potential improvements for scalability:
+
+1. **Role-Based Access Control:**
+   - Admin-only routes (e.g., `/admin/users`, `/admin/settings`)
+   - Middleware checks user role from JWT payload
+
+2. **Route Groups:**
+   - Organize related routes (e.g., `(auth)/login`, `(auth)/signup`)
+   - Share layouts without affecting URLs
+
+3. **Parallel Routes:**
+   - Display multiple pages simultaneously (e.g., modal overlays)
+
+4. **Intercepting Routes:**
+   - Show user profiles as modals when navigating within the app
+   - Full page when accessing directly via URL
+
+5. **Loading States:**
+   - Add `loading.tsx` files for automatic loading UI
+   - Streaming with React Suspense
+
+### Route Security Considerations
+
+1. **JWT Validation:**
+   - Tokens verified on every protected route
+   - Invalid/expired tokens trigger re-authentication
+
+2. **HTTPS Only:**
+   - Production should enforce HTTPS for all routes
+   - Prevents token interception
+
+3. **Cookie Security:**
+   - HTTP-only cookies prevent XSS attacks
+   - Secure flag ensures transmission over HTTPS only
+   - SameSite attribute prevents CSRF
+
+4. **Rate Limiting:**
+   - Consider adding rate limits to authentication routes
+   - Prevents brute force attacks
+
+5. **Input Validation:**
+   - Dynamic route parameters validated before use
+   - Prevents injection attacks
+
 ## Keeping secrets out of git
 
 - `.gitignore` blocks every `.env*` file while explicitly allowing `.env.example`.
@@ -633,9 +881,4 @@ Keep the narration focused on deployment clarity: no hardcoded secrets, minimal 
 - Demonstrate how versioned images + orchestrated rollouts prevent the “port already in use” issue.
 - Emphasize security: IAM roles for GitHub Actions (AWS) or federated credentials (Azure), secret stores, HTTPS-only ingress, and logging for every deployment handoff.
 
- Backend
 
-This is our new Team project
-In which we gonna make a website for checking  correct timing's for Trains.
- main
- main
