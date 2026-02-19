@@ -1,6 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
 import type { Metadata } from "next";
 import GlobalNavbar from "./components/GlobalNavbar.client";
+import { ClientProviders } from "./components/ClientProviders";
 
 export const metadata: Metadata = {
   title: "Millions of Local Trains",
@@ -24,8 +25,10 @@ export default function RootLayout({
           fontFamily: "'Space Grotesk', 'Segoe UI', system-ui, sans-serif"
         }}
       >
-        <GlobalNavbar />
-        <div style={{ minHeight: "100vh" }}>{children}</div>
+        <ClientProviders>
+          <GlobalNavbar />
+          <div style={{ minHeight: "100vh" }}>{children}</div>
+        </ClientProviders>
       </body>
     </html>
   );
