@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import toast from "react-hot-toast";
 import FormInput from "@/components/FormInput";
 
 // ============================================
@@ -43,8 +44,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export default function SignupPage(): ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [status, setStatus] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   // ============================================
   // 3. Initialize React Hook Form with Zod Resolver
@@ -68,13 +67,13 @@ export default function SignupPage(): ReactElement {
   }, [searchParams]);
 
   // ============================================
-  // 4. Form Submission Handler
+  // 4. Form Submission Handler with Toast Feedback
   // ============================================
   async function onSubmit(data: SignupFormData): Promise<void> {
-    setStatus(null);
-    setError(null);
-
     console.log("📝 Form validation passed:", data);
+
+    // Show loading toast
+    const loadingToast = toast.loading('Creating your account...');
 
     try {
       const response = await fetch("/api/auth/signup", {
@@ -87,39 +86,50 @@ export default function SignupPage(): ReactElement {
       const isJson = contentType.includes("application/json");
       const payload = isJson ? await response.json() : await response.text();
 
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+
       if (!response.ok) {
         const fallback =
           typeof payload === "string" && payload.trim()
             ? payload.trim()
             : "Failed to sign up.";
         const derivedError =
-          isJson && isRecord(payload) && typeof payload.error === "string"
-            ? payload.error
+          isJson && isRecord(payload) && typeof payload.message === "string"
+            ? payload.message
             : fallback;
 
         if (!isJson) {
           console.error("Signup API returned non-JSON error:", payload);
         }
 
-        setError(derivedError);
+        // Show error toast
+        toast.error(derivedError);
         return;
       }
 
       const successMessage =
         isJson && isRecord(payload) && typeof payload.message === "string"
           ? payload.message
-          : "Account created successfully. You can log in now.";
+          : "Account created successfully!";
 
-      setStatus(successMessage);
+      // Show success toast
+      toast.success(successMessage);
       console.log("✅ Account created successfully");
       reset(); // Clear form fields
       
       setTimeout(() => {
         router.push(`/login?next=${encodeURIComponent(nextDestination)}`);
-      }, 600);
+      }, 1000);
     } catch (err) {
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+      
       console.error("❌ Signup error:", err);
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      const errorMessage = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      
+      // Show error toast
+      toast.error(errorMessage);
     }
   }
 
@@ -214,43 +224,27 @@ export default function SignupPage(): ReactElement {
                 : "0 12px 30px rgba(37, 99, 235, 0.25)",
               transition: "all 0.3s ease",
               marginTop: "0.5rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.5rem",
             }}
           >
+            {isSubmitting && (
+              <div
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  border: "2px solid #ffffff40",
+                  borderTopColor: "#ffffff",
+                  borderRadius: "50%",
+                  animation: "spin 0.8s linear infinite",
+                }}
+              />
+            )}
             {isSubmitting ? "Creating Account..." : "Sign Up"}
           </button>
         </form>
-
-        {/* Success Message */}
-        {status && (
-          <div
-            style={{
-              marginTop: "1.5rem",
-              padding: "1rem",
-              backgroundColor: "#d1fae5",
-              color: "#047857",
-              borderRadius: "8px",
-              border: "1px solid #6ee7b7",
-            }}
-          >
-            ✅ {status}
-          </div>
-        )}
-
-        {/* Error Message */}
-        {error && (
-          <div
-            style={{
-              marginTop: "1.5rem",
-              padding: "1rem",
-              backgroundColor: "#fee2e2",
-              color: "#dc2626",
-              borderRadius: "8px",
-              border: "1px solid #fca5a5",
-            }}
-          >
-            ❌ {error}
-          </div>
-        )}
 
         <p style={{ marginTop: "1.5rem", textAlign: "center", color: "#64748b" }}>
           Already have an account?{" "}

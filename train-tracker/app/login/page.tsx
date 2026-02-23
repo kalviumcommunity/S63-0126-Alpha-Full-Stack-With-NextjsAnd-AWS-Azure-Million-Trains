@@ -4,6 +4,7 @@ import type { CSSProperties, FormEvent, ReactElement } from "react";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import toast from "react-hot-toast";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -14,8 +15,6 @@ export default function LoginPage(): ReactElement {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("ranijain@gmail.com");
   const [password, setPassword] = useState("ranijain");
-  const [status, setStatus] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const nextDestination = useMemo(() => {
@@ -28,9 +27,10 @@ export default function LoginPage(): ReactElement {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    setStatus(null);
-    setError(null);
     setIsSubmitting(true);
+
+    // Show loading toast
+    const loadingToast = toast.loading('Logging you in...');
 
     try {
       const response = await fetch("/api/auth/login", {
@@ -43,34 +43,47 @@ export default function LoginPage(): ReactElement {
       const isJson = contentType.includes("application/json");
       const payload = isJson ? await response.json() : await response.text();
 
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+
       if (!response.ok) {
         const fallback =
           typeof payload === "string" && payload.trim()
             ? payload.trim()
             : "Failed to log in.";
         const derivedError =
-          isJson && isRecord(payload) && typeof payload.error === "string"
-            ? payload.error
+          isJson && isRecord(payload) && typeof payload.message === "string"
+            ? payload.message
             : fallback;
 
         if (!isJson) {
           console.error("Login API returned non-JSON error:", payload);
         }
 
-        setError(derivedError);
+        // Show error toast
+        toast.error(derivedError);
         return;
       }
 
-      setStatus(
+      const successMessage =
         isJson && isRecord(payload) && typeof payload.message === "string"
           ? payload.message
-          : "Logged in successfully. Redirecting..."
-      );
+          : "Logged in successfully!";
+      
+      // Show success toast
+      toast.success(successMessage);
+      
       setTimeout(() => {
         router.replace(nextDestination);
-      }, 450);
+      }, 800);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+      
+      const errorMessage = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      
+      // Show error toast
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -145,18 +158,28 @@ export default function LoginPage(): ReactElement {
               color: "#ffffff",
               fontWeight: 600,
               cursor: isSubmitting ? "not-allowed" : "pointer",
-              boxShadow: "0 12px 30px rgba(37, 99, 235, 0.25)"
+              boxShadow: "0 12px 30px rgba(37, 99, 235, 0.25)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.5rem",
             }}
           >
+            {isSubmitting && (
+              <div
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  border: "2px solid #ffffff40",
+                  borderTopColor: "#ffffff",
+                  borderRadius: "50%",
+                  animation: "spin 0.8s linear infinite",
+                }}
+              />
+            )}
             {isSubmitting ? "Signing in..." : "Log In"}
           </button>
         </form>
-        {status && (
-          <p style={{ marginTop: "1rem", color: "#047857" }}>{status}</p>
-        )}
-        {error && (
-          <p style={{ marginTop: "1rem", color: "#dc2626" }}>{error}</p>
-        )}
         <p style={{ marginTop: "1.5rem" }}>
           Need an account? <Link href="/signup">Create one</Link>
         </p>
