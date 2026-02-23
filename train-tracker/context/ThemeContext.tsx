@@ -100,11 +100,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setTheme(newTheme);
   };
 
-  // Prevent flash of unstyled content
-  if (!mounted) {
-    return <>{children}</>;
-  }
-
+  // Always provide the context, prevent flash of unstyled content by using default theme
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
       {children}
