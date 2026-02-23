@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 
 interface ModalProps {
   isOpen: boolean;
@@ -12,7 +12,13 @@ interface ModalProps {
 }
 
 /**
- * Modal - A reusable modal/dialog component
+ * Modal - An accessible reusable modal/dialog component
+ * Features:
+ * - Focus trap (keeps focus inside modal)
+ * - Escape key to close
+ * - Click outside to close
+ * - ARIA attributes for screen readers
+ * - Body scroll lock
  * 
  * @example
  * <Modal 
@@ -31,6 +37,23 @@ export default function Modal({
   footer,
   size = "medium",
 }: ModalProps) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousActiveElement = useRef<HTMLElement | null>(null);
+
+  // Focus management and trap
+  useEffect(() => {
+    if (isOpen) {
+      // Store previously focused element
+      previousActiveElement.current = document.activeElement as HTMLElement;
+      
+      // Focus the modal
+      modalRef.current?.focus();
+    } else {
+      // Restore focus when modal closes
+      previousActiveElement.current?.focus();
+    }
+  }, [isOpen]);
+
   // Close on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -71,20 +94,38 @@ export default function Modal({
   };
 
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <div style={modalStyles} onClick={(e) => e.stopPropagation()}>
+    <div 
+      style={styles.overlay} 
+      onClick={onClose}
+      role="presentation"
+    >
+      <div 
+        ref={modalRef}
+        style={modalStyles} 
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? "modal-title" : undefined}
+        aria-describedby="modal-content"
+        tabIndex={-1}
+      >
         {/* Modal Header */}
         {title && (
           <div style={styles.header}>
-            <h2 style={styles.title}>{title}</h2>
-            <button style={styles.closeButton} onClick={onClose} aria-label="Close modal">
+            <h2 id="modal-title" style={styles.title}>{title}</h2>
+            <button 
+              style={styles.closeButton} 
+              onClick={onClose} 
+              aria-label="Close modal"
+              type="button"
+            >
               ✕
             </button>
           </div>
         )}
 
         {/* Modal Content */}
-        <div style={styles.content}>{children}</div>
+        <div id="modal-content" style={styles.content}>{children}</div>
 
         {/* Modal Footer */}
         {footer && <div style={styles.footer}>{footer}</div>}

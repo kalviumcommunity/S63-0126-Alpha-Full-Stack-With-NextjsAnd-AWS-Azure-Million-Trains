@@ -37,7 +37,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     // Find user by email
     const user = await prisma.user.findUnique({
       where: { email: validatedData.email },
-      select: { id: true, email: true, password: true }
+      select: { id: true, email: true, password: true, fullName: true, role: true }
     });
 
     if (!user) {
