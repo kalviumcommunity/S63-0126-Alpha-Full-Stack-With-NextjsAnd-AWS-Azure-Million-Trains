@@ -171,10 +171,102 @@ Visit `/routes` once the dev server is running to try every RapidAPI feature wit
 
 Because the UI only calls local endpoints, you can rotate RapidAPI keys or host overrides without changing the frontend.
 
+## JWT & Session Management
+
+This project implements a **production-grade dual-token authentication system** with automatic token refresh and comprehensive security features.
+
+### Architecture Overview
+
+- **Access Tokens** (15 min): Short-lived tokens for API authorization
+- **Refresh Tokens** (7 days): Long-lived tokens stored in HTTP-only cookies
+- **Automatic Refresh**: Client-side logic transparently refreshes expired tokens
+- **Token Blacklist**: Logout immediately invalidates both tokens
+
+### Security Features
+
+| Feature | Implementation | Protection Against |
+|---------|---------------|-------------------|
+| **HTTP-only Cookies** | Refresh tokens stored in cookies with `httpOnly: true` | XSS attacks (JavaScript cannot access) |
+| **SameSite Strict** | Cookies use `sameSite: 'strict'` | CSRF attacks (no cross-origin requests) |
+| **Token Blacklist** | In-memory Set (Redis-ready) | Token replay after logout |
+| **Separate Secrets** | `JWT_SECRET` vs `JWT_REFRESH_SECRET` | Single-point-of-failure compromise |
+| **Short Expiry** | Access tokens expire in 15 minutes | Limited attack window if stolen |
+
+### Key Files
+
+```
+lib/
+├── jwt-utils.ts           # Token generation and verification
+├── token-storage.ts       # HTTP-only cookie management
+├── token-blacklist.ts     # Token invalidation service
+├── auth-fetch.ts          # Client-side auto-refresh hook
+└── security-utils.ts      # CSRF protection, security headers
+
+app/api/auth/
+├── login/route.ts         # Issues token pair on login
+├── refresh/route.ts       # Generates new access token
+└── logout/route.ts        # Blacklists tokens and clears cookies
+```
+
+### Environment Variables
+
+Add to your `.env.*` files:
+
+```bash
+# JWT Secrets (use strong random strings - minimum 32 characters)
+JWT_SECRET="your-access-token-secret-min-32-chars"
+JWT_REFRESH_SECRET="your-different-refresh-token-secret-min-32-chars"
+
+# Generate with:
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+### Token Flow
+
+```
+Login → Generate Token Pair → Store Refresh in Cookie
+  ↓
+API Request → 401 if Expired → Auto-Refresh → Retry
+  ↓
+Logout → Blacklist Tokens → Clear Cookies
+```
+
+### Usage Example
+
+```typescript
+'use client';
+import { useAuthFetch } from '@/lib/auth-fetch';
+
+export default function ProtectedComponent() {
+  const { fetchWithAuth, isRefreshing } = useAuthFetch();
+  
+  async function loadData() {
+    const response = await fetchWithAuth('/api/protected');
+    // Auto-refresh happens transparently on 401
+    const data = await response.json();
+  }
+}
+```
+
+### Testing & Demo
+
+- **Documentation**: See [JWT_SESSION_MANAGEMENT.md](train-tracker/JWT_SESSION_MANAGEMENT.md) for comprehensive guide
+- **Interactive Demo**: Visit `/jwt-demo` to visualize token refresh flow
+- **Testing Guide**: Full testing procedures in documentation
+
+### Production Recommendations
+
+- ✅ Use Redis for token blacklist (not in-memory)
+- ✅ Enable HTTPS (required for `secure: true` cookies)
+- ✅ Rotate JWT secrets regularly
+- ✅ Monitor token refresh rates
+- ✅ Set up proper logging for auth events
+- ✅ Implement rate limiting on login/refresh endpoints
+
 ## Keeping secrets out of git
 
 - `.gitignore` blocks every `.env*` file while explicitly allowing `.env.example`.
-- `.env.example` documents every variable: `NEXT_PUBLIC_API_BASE_URL`, `DATABASE_URL`, Supabase keys, and `JWT_SECRET`.
+- `.env.example` documents every variable: `NEXT_PUBLIC_API_BASE_URL`, `DATABASE_URL`, Supabase keys, `JWT_SECRET`, and `JWT_REFRESH_SECRET`.
 - Developers pull secrets from the approved store, create their local `.env.development`, and never commit it. Auditing the repo shows that no sensitive strings are present.
 
 ## Why multi-environment builds help CI/CD

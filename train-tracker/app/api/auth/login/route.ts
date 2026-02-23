@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { compare } from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../lib/prisma";
-import { generateToken } from "../../../../lib/jwt-utils";
+import { generateTokenPair } from "../../../../lib/jwt-utils";
+import { setRefreshTokenCookie, setAccessTokenCookie } from "../../../../lib/token-storage";
 import { unauthorizedResponse, successResponse, internalErrorResponse } from "../../../../lib/api-response";
 import { ERROR_CODES } from "../../../../lib/error-codes";
 import { loginSchema } from "../../../../lib/validation-schemas";
@@ -24,9 +25,22 @@ function mapPrismaError(error: unknown): { status: number; error: string } {
 /**
  * POST /api/auth/login
  * Authenticate user with email and password (Zod validated)
+ * Issues access token + refresh token
  * 
  * Request: { email: string, password: string }
- * Success (200): { success: true, data: { id, email }, timestamp }
+ * Success (200): { 
+ *   success: true, 
+ *   data: { 
+ *     id, 
+ *     email, 
+ *     fullName, 
+ *     role, 
+ *     accessToken 
+ *   }, 
+ *   message, 
+ *   timestamp 
+ * }
+ * Refresh token stored in HTTP-only cookie
  * Error (401): { success: false, error: { code: "E401"|"E011" }, timestamp }
  */
 export async function POST(request: Request): Promise<NextResponse> {
@@ -38,22 +52,29 @@ export async function POST(request: Request): Promise<NextResponse> {
     const user = await prisma.user.findUnique({
       where: { email: validatedData.email },
       select: { id: true, email: true, password: true, fullName: true, role: true }
+    });token pair (access + refresh)
+    const { accessToken, refreshToken } = generateTokenPair({
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role
     });
 
-    if (!user) {
-      return unauthorizedResponse("Invalid email or password");
-    }
+    // Store refresh token in HTTP-only cookie (secure)
+    await setRefreshTokenCookie(refreshToken);
+    
+    // Optionally store access token in cookie too
+    // Or return it for client-side memory storage
+    await setAccessTokenCookie(accessToken);
 
-    // Verify password
-    const passwordMatches = await compare(validatedData.password, user.password);
-
-    if (!passwordMatches) {
-      return unauthorizedResponse("Invalid email or password");
-    }
-
-    // Generate JWT token
-    const token = generateToken({
-      id: user.id,
+    // Return access token and user data (refresh token is in cookie)
+    const response = successResponse(
+      { 
+        id: user.id, 
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        accessToken // Client can store in memory or SWR.id,
       email: user.email,
       fullName: user.fullName,
       role: user.role
