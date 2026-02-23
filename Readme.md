@@ -758,6 +758,471 @@ All three layers work together to provide **enterprise-grade security**.
 
 ---
 
+## Cloud Database Configuration (RDS / Azure SQL)
+
+### Overview
+
+**Production-ready cloud database setup** for AWS RDS PostgreSQL and Azure Database for PostgreSQL Flexible Server. This guide covers provisioning, security, backups, disaster recovery, and cost optimization for the Train Tracker application.
+
+### Why Cloud Databases?
+
+| Benefit | AWS RDS | Azure PostgreSQL | Impact |
+|---------|---------|------------------|--------|
+| **Managed Backups** | Automated daily + PITR | 7-35 days retention | Zero data loss risk |
+| **High Availability** | Multi-AZ failover | Zone-redundant | 99.95% uptime SLA |
+| **Scalability** | Vertical + read replicas | Flexible compute tiers | Handle traffic spikes |
+| **Security** | IAM auth + encryption | Azure AD + TDE | Compliance-ready |
+| **Monitoring** | CloudWatch + Performance Insights | Azure Monitor + Query Store | Proactive issue detection |
+
+### Quick Start
+
+#### AWS RDS PostgreSQL
+
+**1. Create Database (Console)**
+```bash
+# Via AWS Console:
+# 1. Navigate to RDS → Create database
+# 2. Choose PostgreSQL 15.4
+# 3. Templates → Production
+# 4. DB instance: db.t3.medium
+# 5. Storage: 100 GB gp3
+# 6. Enable automated backups (30 days)
+# 7. Multi-AZ deployment: Yes
+# 8. VPC: Select your VPC + private subnets
+```
+
+**2. Create Database (CLI)**
+```bash
+aws rds create-db-instance \
+    --db-instance-identifier train-tracker-db-prod \
+    --db-instance-class db.t3.medium \
+    --engine postgres \
+    --engine-version 15.4 \
+    --master-username postgres \
+    --master-user-password 'YourSecurePassword123!' \
+    --allocated-storage 100 \
+    --storage-type gp3 \
+    --storage-encrypted \
+    --backup-retention-period 30 \
+    --preferred-backup-window "03:00-04:00" \
+    --multi-az \
+    --vpc-security-group-ids sg-0123456789abcdef0 \
+    --db-subnet-group-name train-tracker-db-subnet-group \
+    --publicly-accessible \
+    --region us-east-1
+```
+
+**3. Connection String**
+```bash
+# Add to .env.production
+DATABASE_URL="postgresql://postgres:PASSWORD@train-tracker-db-prod.xxxxx.us-east-1.rds.amazonaws.com:5432/traintracker?schema=public&sslmode=require&connection_limit=10"
+```
+
+#### Azure PostgreSQL Flexible Server
+
+**1. Create Database (Portal)**
+```bash
+# Via Azure Portal:
+# 1. Create resource → Azure Database for PostgreSQL
+# 2. Deployment option: Flexible server
+# 3. Compute + storage: General Purpose, 2 vCores
+# 4. Authentication: PostgreSQL authentication
+# 5. Networking: Public access + firewall rules
+# 6. High availability: Zone-redundant
+# 7. Backup: 30-day retention + geo-redundant
+```
+
+**2. Create Database (CLI)**
+```bash
+az postgres flexible-server create \
+    --name train-tracker-db-prod \
+    --resource-group train-tracker-rg \
+    --location eastus \
+    --admin-user pgadmin \
+    --admin-password 'YourSecurePassword123!' \
+    --sku-name Standard_D2s_v3 \
+    --tier GeneralPurpose \
+    --storage-size 128 \
+    --version 15 \
+    --high-availability ZoneRedundant \
+    --backup-retention 30 \
+    --geo-redundant-backup Enabled
+```
+
+**3. Connection String**
+```bash
+# Add to .env.production (note the @ format)
+DATABASE_URL="postgresql://pgadmin%40train-tracker-db-prod:PASSWORD@train-tracker-db-prod.postgres.database.azure.com:5432/traintracker?schema=public&sslmode=require&connection_limit=10"
+```
+
+### Connection Verification
+
+Use the provided verification scripts to test database connectivity:
+
+```bash
+# Comprehensive connection test (450 lines)
+node scripts/verify-db-connection.js
+
+# Output shows:
+# ✓ Provider detection (AWS RDS / Azure / Local)
+# ✓ Connection established
+# ✓ PostgreSQL version: 15.4
+# ✓ SSL status: enabled
+# ✓ Available databases: traintracker, postgres
+# ✓ Tables: User, ContactRequest, AuditEvent, _prisma_migrations
+# ✓ Connection pool: 5/10 active
+# ✓ Prisma migrations: 4 applied
+# ✓ Query latency: 45ms (excellent)
+```
+
+```bash
+# Quick connection test (60 lines)
+node scripts/quick-db-test.js
+
+# Output:
+# ✓ Connected to traintracker database
+# ✓ PostgreSQL 15.4
+# ✓ Server time: 2025-01-08 10:23:45
+```
+
+### Security Configuration
+
+#### AWS RDS Security
+
+**1. VPC Configuration**
+```bash
+# RDS in private subnets (no public access)
+# Application servers in public subnets with NAT Gateway
+# Security group: Allow 5432 only from app security group
+
+aws ec2 authorize-security-group-ingress \
+    --group-id sg-rds-database \
+    --protocol tcp \
+    --port 5432 \
+    --source-group sg-app-servers
+```
+
+**2. IAM Authentication**
+```bash
+# Enable IAM database authentication
+aws rds modify-db-instance \
+    --db-instance-identifier train-tracker-db-prod \
+    --enable-iam-database-authentication \
+    --apply-immediately
+
+# Connect with IAM token (no passwords)
+export PGPASSWORD=$(aws rds generate-db-auth-token \
+    --hostname train-tracker-db-prod.xxxxx.rds.amazonaws.com \
+    --port 5432 \
+    --username iamuser \
+    --region us-east-1)
+
+psql -h train-tracker-db-prod.xxxxx.rds.amazonaws.com \
+     -U iamuser -d traintracker
+```
+
+**3. Encryption**
+```bash
+# Storage encryption (at rest)
+--storage-encrypted \
+--kms-key-id arn:aws:kms:us-east-1:123456789012:key/abcd1234
+
+# SSL/TLS (in transit)
+DATABASE_URL="...?sslmode=require"  # Enforces TLS 1.2+
+```
+
+#### Azure PostgreSQL Security
+
+**1. Firewall Rules**
+```bash
+# Allow specific IP ranges
+az postgres flexible-server firewall-rule create \
+    --resource-group train-tracker-rg \
+    --name train-tracker-db-prod \
+    --rule-name AllowAppServers \
+    --start-ip-address 10.0.1.0 \
+    --end-ip-address 10.0.1.255
+```
+
+**2. Azure AD Authentication**
+```bash
+# Enable Azure AD authentication
+az postgres flexible-server ad-admin create \
+    --resource-group train-tracker-rg \
+    --server-name train-tracker-db-prod \
+    --display-name "DB Admin" \
+    --object-id <your-ad-object-id>
+
+# Connect with Azure AD token
+az account get-access-token --resource-type oss-rdbms | jq -r .accessToken | \
+    psql "host=train-tracker-db-prod.postgres.database.azure.com user=dbadmin@tenant.onmicrosoft.com dbname=traintracker sslmode=require"
+```
+
+**3. Private Endpoints**
+```bash
+# Disable public access
+az postgres flexible-server update \
+    --name train-tracker-db-prod \
+    --resource-group train-tracker-rg \
+    --public-network-access Disabled
+
+# Create private endpoint
+az network private-endpoint create \
+    --name train-tracker-db-pe \
+    --resource-group train-tracker-rg \
+    --vnet-name train-tracker-vnet \
+    --subnet db-subnet \
+    --private-connection-resource-id <postgres-server-id> \
+    --group-id postgresqlServer \
+    --connection-name train-tracker-db-connection
+```
+
+### Backup & Disaster Recovery
+
+#### Automated Backups
+
+**AWS RDS**
+- **Retention**: 7-35 days (production: 30 days recommended)
+- **PITR**: Restore to any second within retention period
+- **Backup Window**: 3:00-4:00 AM UTC (low-traffic period)
+- **Storage**: Free up to database size
+
+**Azure PostgreSQL**
+- **Retention**: 7-35 days (production: 30 days recommended)
+- **Geo-Redundant**: Backups replicated to paired region
+- **Automatic**: Daily full backups + transaction log backups
+- **Storage**: Free up to 100% of provisioned storage
+
+#### Manual Backups
+
+```bash
+# AWS: Create snapshot
+aws rds create-db-snapshot \
+    --db-instance-identifier train-tracker-db-prod \
+    --db-snapshot-identifier train-tracker-manual-$(date +%Y%m%d)
+
+# Azure: Use pg_dump (Azure doesn't have manual snapshots)
+pg_dump -h train-tracker-db-prod.postgres.database.azure.com \
+    -U pgadmin@train-tracker-db-prod \
+    -d traintracker \
+    -F c \
+    -f traintracker-backup-$(date +%Y%m%d).backup
+```
+
+#### Disaster Recovery Targets
+
+| Metric | Development | Production | Mission-Critical |
+|--------|-------------|------------|------------------|
+| **RTO** (Recovery Time) | 4 hours | 1 hour | 15 minutes |
+| **RPO** (Data Loss) | 24 hours | 15 minutes | 5 minutes |
+| **Strategy** | Daily backups | Automated backups + PITR | Multi-region + read replicas |
+
+### Performance Optimization
+
+#### Connection Pooling
+
+**RDS Proxy (AWS)**
+```bash
+# Create RDS Proxy for connection pooling
+aws rds create-db-proxy \
+    --db-proxy-name train-tracker-proxy \
+    --engine-family POSTGRESQL \
+    --auth [{...}] \
+    --role-arn arn:aws:iam::123456789012:role/RDSProxyRole \
+    --vpc-subnet-ids subnet-1 subnet-2 \
+    --target-arn arn:aws:rds:us-east-1:123456789012:db:train-tracker-db-prod
+
+# Connection string via proxy (handles 1000s of connections)
+DATABASE_URL="postgresql://user:pass@train-tracker-proxy.proxy-xxxxx.us-east-1.rds.amazonaws.com:5432/traintracker"
+```
+
+**PgBouncer (Azure + AWS)**
+```bash
+# Install PgBouncer on application server
+sudo apt-get install pgbouncer
+
+# /etc/pgbouncer/pgbouncer.ini
+[databases]
+traintracker = host=train-tracker-db-prod.postgres.database.azure.com port=5432 dbname=traintracker
+
+[pgbouncer]
+listen_addr = 127.0.0.1
+listen_port = 6432
+pool_mode = transaction
+max_client_conn = 1000
+default_pool_size = 20
+
+# Connect via PgBouncer
+DATABASE_URL="postgresql://user:pass@localhost:6432/traintracker"
+```
+
+#### Indexing Strategy
+
+```sql
+-- Already implemented in Prisma schema
+CREATE INDEX idx_user_email ON "User"(email);
+CREATE INDEX idx_user_createdat ON "User"("createdAt");
+CREATE INDEX idx_contact_email ON "ContactRequest"(email);
+CREATE INDEX idx_contact_category ON "ContactRequest"(category);
+CREATE INDEX idx_auditevent_type ON "AuditEvent"("eventType");
+```
+
+### Cost Optimization
+
+#### AWS RDS Pricing (us-east-1)
+
+| Instance Type | vCPU | RAM | Storage | Monthly Cost |
+|---------------|------|-----|---------|--------------|
+| **db.t3.micro** | 2 | 1 GB | 20 GB gp3 | $15 (dev/staging) |
+| **db.t3.small** | 2 | 2 GB | 50 GB gp3 | $30 (small prod) |
+| **db.t3.medium** | 2 | 4 GB | 100 GB gp3 | $60 (production) |
+| **db.r6g.large** | 2 | 16 GB | 500 GB gp3 | $250 (high-traffic) |
+
+**Cost Savings:**
+- ✅ Use Reserved Instances: 40-60% discount (1-3 year commitment)
+- ✅ Enable Storage Autoscaling: Pay only for used storage
+- ✅ Delete old snapshots: $0.095/GB-month for manual snapshots
+- ✅ Use gp3 instead of io1: 20% cheaper with same performance
+
+#### Azure PostgreSQL Pricing (East US)
+
+| SKU | vCPU | RAM | Storage | Monthly Cost |
+|-----|------|-----|---------|--------------|
+| **Burstable B1ms** | 1 | 2 GB | 32 GB | $15 (dev/staging) |
+| **General Purpose D2s_v3** | 2 | 8 GB | 128 GB | $140 (production) |
+| **Memory Optimized E2s_v3** | 2 | 16 GB | 256 GB | $220 (high-memory) |
+
+**Cost Savings:**
+- ✅ Use Reserved Capacity: 38-65% discount (1-3 year)
+- ✅ Stop/Start dev databases: Pay only when running
+- ✅ Use lifecycle policies: Move old backups to Cool/Archive storage
+- ✅ Right-size compute: Start small, scale up based on metrics
+
+### Environment Configuration
+
+Update your `.env.example` (already created) with cloud database URLs:
+
+```bash
+# Option 1: Local PostgreSQL
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/traintracker?schema=public"
+
+# Option 2: AWS RDS (Production)
+DATABASE_URL="postgresql://postgres:PASSWORD@train-tracker-db-prod.xxxxx.us-east-1.rds.amazonaws.com:5432/traintracker?schema=public&sslmode=require&connection_limit=10"
+
+# Option 3: Azure PostgreSQL (Production)
+DATABASE_URL="postgresql://pgadmin%40train-tracker-db-prod:PASSWORD@train-tracker-db-prod.postgres.database.azure.com:5432/traintracker?schema=public&sslmode=require&connection_limit=10"
+
+# Option 4: Supabase (Free Tier)
+DATABASE_URL="postgresql://postgres:PASSWORD@db.xxxxx.supabase.co:5432/postgres?schema=public&sslmode=require"
+```
+
+### Migration from Local to Cloud
+
+```bash
+# 1. Backup local database
+pg_dump -h localhost -U postgres -d traintracker -F c -f local-backup.dump
+
+# 2. Create cloud database (see Quick Start above)
+
+# 3. Update DATABASE_URL in .env.production
+DATABASE_URL="postgresql://postgres:PASSWORD@CLOUD_HOST:5432/traintracker?schema=public&sslmode=require"
+
+# 4. Apply Prisma migrations to cloud database
+npx prisma migrate deploy
+
+# 5. Restore data to cloud (if needed)
+pg_restore -h CLOUD_HOST -U postgres -d traintracker -v local-backup.dump
+
+# 6. Verify connection
+node scripts/verify-db-connection.js
+
+# 7. Deploy application with new DATABASE_URL
+npm run build:production
+```
+
+### Documentation
+
+- **Full Setup Guide**: [CLOUD_DATABASE_GUIDE.md](train-tracker/CLOUD_DATABASE_GUIDE.md)
+  - AWS RDS provisioning (console + CLI)
+  - Azure PostgreSQL provisioning (portal + CLI)
+  - Security configurations (VPC, IAM, encryption)
+  - Performance tuning (RDS Proxy, PgBouncer, indexing)
+  - Monitoring setup (CloudWatch, Azure Monitor)
+  
+- **Backup Strategies**: [DATABASE_BACKUP_STRATEGIES.md](train-tracker/DATABASE_BACKUP_STRATEGIES.md)
+  - Automated backup configuration
+  - Manual backup procedures
+  - Point-in-Time Recovery (PITR)
+  - Disaster recovery runbooks
+  - Backup testing procedures
+
+- **Connection Testing**: 
+  - `scripts/verify-db-connection.js` - Comprehensive 9-step verification
+  - `scripts/quick-db-test.js` - Minimal connection test
+
+### Monitoring & Alerts
+
+**AWS CloudWatch**
+```bash
+# Create alarm for high connections
+aws cloudwatch put-metric-alarm \
+    --alarm-name train-tracker-high-connections \
+    --metric-name DatabaseConnections \
+    --namespace AWS/RDS \
+    --statistic Average \
+    --period 300 \
+    --evaluation-periods 2 \
+    --threshold 80 \
+    --comparison-operator GreaterThanThreshold \
+    --dimensions Name=DBInstanceIdentifier,Value=train-tracker-db-prod
+```
+
+**Azure Monitor**
+```bash
+# Create alert for high CPU
+az monitor metrics alert create \
+    --name train-tracker-high-cpu \
+    --resource-group train-tracker-rg \
+    --scopes /subscriptions/.../train-tracker-db-prod \
+    --condition "avg cpu_percent > 80" \
+    --window-size 5m \
+    --evaluation-frequency 1m
+```
+
+### Best Practices Checklist
+
+- ✅ **Enable automated backups** (30-day retention for production)
+- ✅ **Configure Multi-AZ / Zone-redundant** (99.95% uptime SLA)
+- ✅ **Enforce SSL/TLS** (`sslmode=require` in connection string)
+- ✅ **Use parameter groups** (tune work_mem, shared_buffers, max_connections)
+- ✅ **Set up connection pooling** (RDS Proxy or PgBouncer)
+- ✅ **Enable performance insights** (identify slow queries)
+- ✅ **Configure CloudWatch/Azure Monitor alerts** (CPU, memory, connections)
+- ✅ **Test disaster recovery** monthly (restore from backup, verify data)
+- ✅ **Use IAM/Azure AD auth** instead of passwords
+- ✅ **Enable audit logging** (track all database operations)
+- ✅ **Right-size instances** (start small, scale based on metrics)
+- ✅ **Use Reserved Instances** for production (40-60% cost savings)
+
+### Provider Comparison
+
+| Feature | AWS RDS | Azure PostgreSQL | Winner |
+|---------|---------|------------------|--------|
+| **Free Tier** | 750 hours/month (12 months) | None | AWS |
+| **Multi-AZ HA** | Yes | Zone-redundant | Tie |
+| **PITR** | 5-minute granularity | 5-minute granularity | Tie |
+| **Max Storage** | 64 TB (gp3) | 32 TB | AWS |
+| **Connection Pooling** | RDS Proxy (built-in) | PgBouncer (self-managed) | AWS |
+| **Monitoring** | CloudWatch + Performance Insights | Azure Monitor + Query Store | Tie |
+| **IAM Auth** | Native IAM | Azure AD | Tie |
+| **Pricing** | Lower for small instances | Lower for high-memory workloads | Depends |
+
+**Recommendation:**
+- **AWS RDS**: Better for AWS-native architectures, free tier availability, built-in connection pooling
+- **Azure PostgreSQL**: Better for Azure-native architectures, seamless Azure AD integration, flexible compute tiers
+
+---
+
 ## Keeping secrets out of git
 
 - `.gitignore` blocks every `.env*` file while explicitly allowing `.env.example`.
