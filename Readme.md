@@ -445,6 +445,144 @@ RBAC works seamlessly with the JWT authentication system:
 
 ---
 
+## Input Sanitization & OWASP Compliance
+
+This application implements **OWASP-compliant security practices** to protect against XSS, SQL injection, command injection, and other common vulnerabilities.
+
+### Security Layers
+
+Our defense-in-depth strategy includes:
+
+1. **Input Sanitization** (Server-side) - Remove malicious content before storage
+2. **Output Encoding** (Client-side) - Escape content before rendering
+3. **Parameterized Queries** (Prisma ORM) - Prevent SQL injection automatically
+4. **Security Middleware** - Rate limiting, header validation, size limits
+5. **Security Headers** - X-Frame-Options, CSP, X-XSS-Protection
+
+### Sanitization Levels
+
+| Level | Use Case | Allowed Tags |
+|-------|----------|--------------|
+| **STRICT** | Usernames, file names, search queries | None (plain text only) |
+| **BASIC** | Comments, chat messages | `b`, `i`, `em`, `strong`, `p`, `br` |
+| **MODERATE** | Blog posts, descriptions | Headings, lists, links, blockquotes |
+| **RICH** | Articles, documentation | Images, videos, iframes (approved domains) |
+
+### Usage Examples
+
+#### Server-Side Sanitization
+```typescript
+import { sanitize, SanitizationLevel } from '@/lib/input-sanitizer';
+import { withSecurity } from '@/lib/security-middleware';
+
+export const POST = withSecurity(async (request: NextRequest) => {
+  const body = await request.json();
+  
+  // Sanitize inputs
+  const cleanComment = sanitize(body.comment, SanitizationLevel.BASIC);
+  const cleanEmail = sanitizeEmail(body.email);
+  
+  // Store safely
+  await prisma.comment.create({ data: { text: cleanComment } });
+});
+```
+
+#### Client-Side Output Encoding
+```tsx
+import { SafeHTML } from '@/lib/output-encoder';
+
+// Safe HTML rendering with DOMPurify
+<SafeHTML html={userGeneratedContent} className="prose" />
+
+// React auto-escapes by default (already safe)
+<div>{userName}</div>
+```
+
+### XSS Prevention
+
+**Attack Example:**
+```html
+<!-- User input -->
+<script>alert('XSS: ' + document.cookie)</script>
+
+<!-- After sanitization -->
+<!-- Empty (script tag removed) -->
+```
+
+**Common XSS Vectors Blocked:**
+- ✅ Script tags (`<script>`)
+- ✅ Event handlers (`onerror`, `onload`, `onclick`)
+- ✅ JavaScript protocols (`javascript:`, `data:`)
+- ✅ SVG scripts (`<svg onload="...">`)
+- ✅ Iframe injection (domain whitelist enforced)
+
+### SQL Injection Prevention
+
+**Prisma Protection (Automatic):**
+```typescript
+// ✅ SAFE - Prisma parameterizes automatically
+await prisma.user.findFirst({
+  where: { email: userInput }  // Treated as data, not SQL
+});
+
+// ❌ UNSAFE - Never build SQL strings
+const query = `SELECT * FROM users WHERE email = '${userInput}'`;
+```
+
+**Attack Example:**
+```sql
+-- User input: admin' OR '1'='1
+-- Vulnerable query: SELECT * FROM users WHERE username = 'admin' OR '1'='1'
+-- Prisma query: SELECT * FROM users WHERE username = $1
+-- Parameter: "admin' OR '1'='1" (treated as literal string)
+```
+
+### Key Files
+
+```
+lib/
+├── input-sanitizer.ts      # 15 sanitization functions (strict → rich)
+├── output-encoder.ts       # Context-aware encoding (HTML, JS, URL, CSS)
+└── security-middleware.ts  # API protection (rate limit, headers, validation)
+
+app/
+└── security-demo/          # Interactive XSS/SQLi demo
+```
+
+### Testing & Demo
+
+- **Documentation**: See [OWASP_COMPLIANCE_GUIDE.md](train-tracker/OWASP_COMPLIANCE_GUIDE.md) for comprehensive details
+- **Interactive Demo**: Visit `/security-demo` to try XSS attacks and see real-time sanitization
+- **Testing Evidence**: Before/after examples and attack vectors documented
+
+### OWASP Top 10 Coverage
+
+| Vulnerability | Status | Implementation |
+|---------------|--------|----------------|
+| A01: Broken Access Control | ✅ | RBAC with role/permission checks |
+| A02: Cryptographic Failures | ✅ | JWT HS256, bcrypt password hashing |
+| A03: Injection | ✅ | Prisma ORM, input sanitization |
+| A04: Insecure Design | ✅ | Security-first architecture |
+| A05: Security Misconfiguration | ✅ | Security headers, CSP, CORS |
+| A06: Vulnerable Components | ⚠️ | Regular `npm audit`, updates |
+| A07: Authentication Failures | ✅ | Dual-token JWT, rate limiting |
+| A08: Data Integrity Failures | ✅ | Input validation, JWT signatures |
+| A09: Logging Failures | ✅ | Structured logging, audit trails |
+| A10: SSRF | ✅ | URL validation, domain whitelists |
+
+### Security Best Practices
+
+- ✅ **Always sanitize on input** - Never trust user data
+- ✅ **Always encode on output** - Context-aware escaping
+- ✅ **Use parameterized queries** - Prisma handles this automatically
+- ✅ **Implement rate limiting** - Prevent brute force and DoS
+- ✅ **Set security headers** - Browser-level protection
+- ✅ **Log security events** - Audit trail for investigations
+- ✅ **Update dependencies** - Run `npm audit` regularly
+- ✅ **Test with real attacks** - Use the `/security-demo` page
+
+---
+
 ## Keeping secrets out of git
 
 - `.gitignore` blocks every `.env*` file while explicitly allowing `.env.example`.
