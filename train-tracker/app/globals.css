@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Base Styles */
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 transition-colors duration-200;
+    @apply dark:bg-gray-900 dark:text-gray-100;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold;
+  }
+
+  /* Focus visible styles for better accessibility */
+  *:focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand-500 rounded;
+  }
+}
+
+/* Custom Component Styles */
+@layer components {
+  /* Button Base */
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply bg-brand-500 text-white hover:bg-brand-600;
+    @apply focus:ring-brand-500 dark:bg-brand-600 dark:hover:bg-brand-700;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-200 text-gray-900 hover:bg-gray-300;
+    @apply dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600;
+  }
+
+  /* Card Component */
+  .card {
+    @apply bg-white rounded-xl shadow-card p-6 transition-shadow duration-200;
+    @apply dark:bg-gray-800 dark:shadow-lg;
+  }
+
+  .card-hover {
+    @apply hover:shadow-card-hover;
+  }
+
+  /* Input Base */
+  .input {
+    @apply w-full px-4 py-2 border border-gray-300 rounded-lg;
+    @apply focus:border-brand-500 focus:ring-2 focus:ring-brand-200;
+    @apply bg-white dark:bg-gray-800 dark:border-gray-600;
+    @apply dark:focus:border-brand-400 dark:focus:ring-brand-900;
+  }
+}
+
+/* Custom Utility Classes */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Gradient Text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-brand-500 to-purple-600 bg-clip-text text-transparent;
+  }
+
+  /* Container Utility */
+  .container-custom {
+    @apply mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl;
+  }
+
+  /* Smooth Scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.gray.400') theme('colors.gray.100');
+  }
+
+  .dark .scrollbar-thin {
+    scrollbar-color: theme('colors.gray.600') theme('colors.gray.900');
+  }
+}
+
+/* Animations */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Screen Reader Only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

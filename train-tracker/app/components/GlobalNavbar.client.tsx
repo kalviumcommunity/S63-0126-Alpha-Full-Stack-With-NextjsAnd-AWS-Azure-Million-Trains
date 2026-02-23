@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import type { CSSProperties } from 'react';
 import Cookies from 'js-cookie';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function GlobalNavbar() {
   const pathname = usePathname();
@@ -13,7 +13,6 @@ export default function GlobalNavbar() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check if user is authenticated
     const token = Cookies.get('token');
     setIsAuthenticated(!!token);
   }, [pathname]);
@@ -44,275 +43,133 @@ export default function GlobalNavbar() {
     : publicNavItems;
 
   return (
-    <nav style={styles.navbar}>
-      <style>{`
-        .nav-link {
-          position: relative;
-          display: inline-block;
-          transition: color 0.2s ease;
-        }
+    <nav className="sticky top-0 z-50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 transition-colors">
+      <div className="container-custom">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link 
+            href="/"
+            className="flex items-center space-x-2 text-xl font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors"
+          >
+            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span className="hidden sm:inline">Train Tracker</span>
+          </Link>
 
-        .nav-link:hover {
-          color: #2563eb;
-        }
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-1">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 
+                  ${pathname === item.href 
+                    ? 'bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300' 
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
 
-        .nav-link-active {
-          color: #2563eb;
-          font-weight: 600;
-        }
-
-        .nav-link::after {
-          content: '';
-          position: absolute;
-          left: 0;
-          right: 0;
-          bottom: -4px;
-          height: 2px;
-          background: #2563eb;
-          border-radius: 999px;
-          transform: scaleX(0);
-          transform-origin: center;
-          transition: transform 200ms ease;
-        }
-
-        .nav-link:hover::after,
-        .nav-link-active::after {
-          transform: scaleX(1);
-        }
-
-        .hamburger-btn {
-          display: none;
-        }
-
-        @media (max-width: 968px) {
-          .hamburger-btn {
-            display: flex !important;
-          }
-
-          .nav-links {
-            display: ${isOpen ? 'flex' : 'none'} !important;
-            flex-direction: column;
-            gap: 0.75rem;
-            width: 100%;
-            padding-top: 1rem;
-            border-top: 1px solid #e5e7eb;
-          }
-
-          .auth-buttons {
-            width: 100%;
-            flex-direction: column;
-            gap: 0.75rem;
-          }
-
-          .login-btn,
-          .signup-btn,
-          .logout-btn {
-            width: 100%;
-          }
-        }
-
-        .auth-login:hover {
-          color: #2563eb !important;
-          background: #dbeafe !important;
-        }
-
-        .auth-signup:hover {
-          filter: brightness(1.1);
-          transform: translateY(-1px);
-          box-shadow: 0 6px 14px rgba(37, 99, 235, 0.35);
-        }
-
-        .auth-logout:hover {
-          background: #dc2626 !important;
-        }
-      `}</style>
-
-      <div style={styles.container}>
-        {/* Logo */}
-        <Link href="/" style={styles.logo}>
-          🚂 TrainTracker
-        </Link>
-
-        {/* Hamburger Menu */}
-        <button
-          style={styles.hamburger}
-          onClick={() => setIsOpen(!isOpen)}
-          className="hamburger-btn"
-          aria-label="Toggle menu"
-        >
-          <span style={styles.hamburgerLine}></span>
-          <span style={styles.hamburgerLine}></span>
-          <span style={styles.hamburgerLine}></span>
-        </button>
-
-        {/* Navigation Links */}
-        <div style={styles.navLinksContainer} className="nav-links">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={styles.navLink}
-              className={`nav-link ${pathname === item.href ? 'nav-link-active' : ''}`}
-              onClick={() => setIsOpen(false)}
-            >
-              {item.label}
-            </Link>
-          ))}
-
-          {/* Auth Buttons */}
-          <div style={styles.authButtons} className="auth-buttons">
+          {/* Right Section: Theme + Auth Buttons */}
+          <div className="flex items-center space-x-3">
+            <ThemeToggle />
+            
             {isAuthenticated ? (
               <button
-                onClick={() => {
-                  handleLogout();
-                  setIsOpen(false);
-                }}
-                style={styles.logoutBtn}
-                className="auth-logout logout-btn"
+                onClick={handleLogout}
+                className="hidden md:block px-4 py-2 text-sm font-medium text-white bg-danger-500 hover:bg-danger-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-danger-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
               >
                 Logout
               </button>
             ) : (
-              <>
-                <Link 
-                  href="/login" 
-                  style={styles.loginBtn} 
-                  className="auth-login login-btn"
-                  onClick={() => setIsOpen(false)}
+              <div className="hidden md:flex items-center space-x-2">
+                <Link
+                  href="/login"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
                 >
                   Login
                 </Link>
-                <Link 
-                  href="/signup" 
-                  style={styles.signupBtn} 
-                  className="auth-signup signup-btn"
-                  onClick={() => setIsOpen(false)}
+                <Link
+                  href="/signup"
+                  className="px-4 py-2 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
                 >
                   Sign Up
                 </Link>
-              </>
+              </div>
             )}
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="md:hidden p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              aria-label="Toggle menu"
+              aria-expanded={isOpen}
+            >
+              {isOpen ? (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Navigation */}
+        {isOpen && (
+          <div className="md:hidden py-4 space-y-1 border-t border-gray-200 dark:border-gray-700 animate-slide-down">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setIsOpen(false)}
+                className={`block px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                  ${pathname === item.href 
+                    ? 'bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300' 
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
+              >
+                {item.label}
+              </Link>
+            ))}
+            
+            {/* Mobile Auth Buttons */}
+            <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+              {isAuthenticated ? (
+                <button
+                  onClick={handleLogout}
+                  className="w-full px-4 py-2 text-sm font-medium text-white bg-danger-500 hover:bg-danger-600 rounded-lg transition-colors"
+                >
+                  Logout
+                </button>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    onClick={() => setIsOpen(false)}
+                    className="block w-full px-4 py-2 text-sm font-medium text-center text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/signup"
+                    onClick={() => setIsOpen(false)}
+                    className="block w-full px-4 py-2 text-sm font-medium text-center text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors"
+                  >
+                    Sign Up
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );
-}
-
-const styles: Record<string, CSSProperties> = {
-  navbar: {
-    position: 'sticky',
-    top: 0,
-    zIndex: 1000,
-    background: 'white',
-    borderBottom: '1px solid #e5e7eb',
-    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-    padding: '0',
-    width: '100%',
-  },
-
-  container: {
-    maxWidth: '1400px',
-    margin: '0 auto',
-    padding: '1rem 1.5rem',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: '1rem',
-  },
-
-  logo: {
-    fontSize: '1.5rem',
-    fontWeight: 700,
-    color: '#2563eb',
-    textDecoration: 'none',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    letterSpacing: '-0.02em',
-    transition: 'opacity 200ms ease',
-    cursor: 'pointer',
-  },
-
-  hamburger: {
-    display: 'flex',
-    flexDirection: 'column',
-    background: 'transparent',
-    border: 'none',
-    cursor: 'pointer',
-    gap: '6px',
-    padding: '0.5rem',
-  },
-
-  hamburgerLine: {
-    width: '24px',
-    height: '2.5px',
-    background: '#2563eb',
-    borderRadius: '2px',
-    transition: 'all 300ms ease',
-  },
-
-  navLinksContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '2rem',
-    marginLeft: 'auto',
-  },
-
-  navLink: {
-    color: '#374151',
-    textDecoration: 'none',
-    fontSize: '0.95rem',
-    fontWeight: 500,
-    padding: '0.5rem 1rem',
-    cursor: 'pointer',
-  },
-
-  authButtons: {
-    display: 'flex',
-    gap: '1rem',
-    alignItems: 'center',
-  },
-
-  loginBtn: {
-    padding: '0.5rem 1.25rem',
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    color: '#2563eb',
-    textDecoration: 'none',
-    background: 'transparent',
-    border: '2px solid #2563eb',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    transition: 'all 200ms ease',
-    textAlign: 'center',
-  },
-
-  signupBtn: {
-    padding: '0.5rem 1.25rem',
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    color: 'white',
-    textDecoration: 'none',
-    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    transition: 'all 200ms ease',
-    textAlign: 'center',
-  },
-
-  logoutBtn: {
-    padding: '0.5rem 1.25rem',
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    color: 'white',
-    background: '#ef4444',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    transition: 'all 200ms ease',
-    textAlign: 'center',
-  },
-};
