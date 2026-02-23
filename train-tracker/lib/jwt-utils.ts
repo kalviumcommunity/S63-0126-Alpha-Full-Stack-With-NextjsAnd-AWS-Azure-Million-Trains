@@ -10,7 +10,7 @@ export interface JWTPayload {
   id: string;
   email: string;
   fullName?: string;
-  role: string; // "user", "admin", etc.
+  role: string; // "SUPER_ADMIN", "ADMIN", "EDITOR", "USER", "VIEWER", "GUEST"
   tokenType?: "access" | "refresh"; // Distinguish token types
   iat?: number; // Issued at (Unix timestamp)
   exp?: number; // Expires at (Unix timestamp)

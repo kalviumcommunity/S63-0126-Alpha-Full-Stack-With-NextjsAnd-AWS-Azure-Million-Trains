@@ -263,6 +263,188 @@ export default function ProtectedComponent() {
 - ✅ Set up proper logging for auth events
 - ✅ Implement rate limiting on login/refresh endpoints
 
+---
+
+## Role-Based Access Control (RBAC)
+
+This project implements a **comprehensive RBAC system** that works seamlessly with JWT authentication to provide granular permission management across API endpoints and UI components.
+
+### Role Hierarchy
+
+The system defines 6 roles in a hierarchical structure (higher roles inherit all permissions from lower roles):
+
+| Role | Level | Description | Key Permissions |
+|------|-------|-------------|-----------------|
+| **SUPER_ADMIN** | 100 | Full system access | All permissions (17 total) |
+| **ADMIN** | 80 | Administrative functions | User management, train updates, system settings |
+| **EDITOR** | 60 | Content management | Create/update trains, manage fare data |
+| **USER** | 40 | Standard authenticated user | Read trains, check PNR status, submit contact forms |
+| **VIEWER** | 20 | Read-only access | View trains, search stations, read-only operations |
+| **GUEST** | 0 | Unauthenticated public | Public pages only |
+
+### Permission System
+
+17 atomic permissions across 5 categories:
+
+- **User Management**: `USER_CREATE`, `USER_READ`, `USER_UPDATE`, `USER_DELETE`, `USER_LIST`
+- **Train Data**: `TRAIN_CREATE`, `TRAIN_READ`, `TRAIN_UPDATE`, `TRAIN_DELETE`
+- **Contact Management**: `CONTACT_READ`, `CONTACT_DELETE`, `CONTACT_RESPOND`
+- **System Operations**: `UPLOAD_FILE`, `DELETE_FILE`, `MANAGE_FARE`
+- **Admin Functions**: `SYSTEM_SETTINGS`, `VIEW_AUDIT_LOGS`
+
+### API Protection
+
+Protect routes with three simple patterns:
+
+#### 1. Permission-Based Protection (Recommended)
+```typescript
+import { withPermission, Permission } from '@/lib/rbac-middleware';
+
+export const DELETE = withPermission(Permission.USER_DELETE, async (request, user) => {
+  // Only users with USER_DELETE permission can access
+  // Business logic here
+  return NextResponse.json({ success: true });
+});
+```
+
+#### 2. Role-Based Protection
+```typescript
+import { withRole, Role } from '@/lib/rbac-middleware';
+
+export const GET = withRole(Role.ADMIN, async (request, user) => {
+  // Only ADMIN and higher can access
+  return NextResponse.json({ data: adminData });
+});
+```
+
+#### 3. Manual Checking
+```typescript
+import { requirePermission, Permission } from '@/lib/rbac-middleware';
+
+export async function POST(request: NextRequest) {
+  const authResult = await requirePermission(request, Permission.TRAIN_CREATE);
+  if (!authResult.allowed) {
+    return authResult.response; // Returns 401 or 403 automatically
+  }
+  // Continue with business logic
+}
+```
+
+### UI Component Protection
+
+Adapt the UI based on user permissions:
+
+#### Using the Protected Component
+```typescript
+import { Protected } from '@/hooks/useRBAC';
+import { Permission } from '@/lib/rbac-config';
+
+<Protected permission={Permission.USER_DELETE}>
+  <button onClick={deleteUser}>Delete User</button>
+</Protected>
+```
+
+#### Using the useRBAC Hook
+```typescript
+'use client';
+import { useRBAC } from '@/hooks/useRBAC';
+import { Permission } from '@/lib/rbac-config';
+
+export default function UserManagement() {
+  const rbac = useRBAC();
+  
+  return (
+    <div>
+      {rbac.can(Permission.USER_CREATE) && (
+        <button>Create User</button>
+      )}
+      
+      {rbac.isAtLeast(Role.ADMIN) && (
+        <AdminPanel />
+      )}
+    </div>
+  );
+}
+```
+
+#### Conditional Rendering
+```typescript
+const rbac = useRBAC();
+
+// Check single permission
+if (rbac.can(Permission.TRAIN_UPDATE)) { /* ... */ }
+
+// Check multiple permissions (any)
+if (rbac.canAny([Permission.USER_READ, Permission.USER_LIST])) { /* ... */ }
+
+// Check multiple permissions (all)
+if (rbac.canAll([Permission.TRAIN_CREATE, Permission.TRAIN_UPDATE])) { /* ... */ }
+
+// Convenience role checks
+if (rbac.isSuperAdmin) { /* ... */ }
+if (rbac.isAdmin) { /* ... */ }
+```
+
+### Key Files
+
+```
+lib/
+├── rbac-config.ts         # Role/Permission enums, hierarchy, policy evaluation
+└── rbac-middleware.ts     # API protection wrappers (withPermission, withRole, withAuth)
+
+hooks/
+└── useRBAC.ts             # Client-side permission checking + Protected component
+
+app/api/admin/
+└── users/
+    ├── route.ts           # List/Create users (permission-protected)
+    └── [id]/route.ts      # Get/Update/Delete user (granular permissions)
+```
+
+### Audit Logging
+
+All RBAC decisions are automatically logged with full context:
+
+```json
+{
+  "timestamp": "2025-01-08T10:23:45.123Z",
+  "event": "RBAC_CHECK",
+  "userId": "user-123",
+  "userEmail": "jane@example.com",
+  "role": "EDITOR",
+  "permission": "TRAIN_UPDATE",
+  "resource": "/api/admin/trains/express-123",
+  "method": "PATCH",
+  "allowed": true,
+  "reason": "User has explicit permission TRAIN_UPDATE"
+}
+```
+
+### Testing & Demo
+
+- **Documentation**: See [RBAC_IMPLEMENTATION_GUIDE.md](train-tracker/RBAC_IMPLEMENTATION_GUIDE.md) for comprehensive details
+- **Testing Evidence**: Full test suite results in [RBAC_TESTING_EVIDENCE.md](train-tracker/RBAC_TESTING_EVIDENCE.md)
+- **Interactive Demo**: Visit `/rbac-demo` to visualize roles and permissions
+
+### Integration with JWT
+
+RBAC works seamlessly with the JWT authentication system:
+
+1. **Login**: JWT payload includes user's role (`{ id, email, role: 'ADMIN' }`)
+2. **Token Storage**: Role propagates through access token (15m) and refresh token (7d)
+3. **API Request**: Middleware extracts role from JWT → checks permission → allows/denies
+4. **UI Adaptation**: Client reads role from localStorage or token → adapts UI elements
+
+### Security Best Practices
+
+- ✅ **Never rely on client-side checks alone** - Always enforce permissions on the server
+- ✅ **Check permissions, not roles** - Use `withPermission(Permission.USER_DELETE)` instead of `withRole(Role.ADMIN)`
+- ✅ **Validate inputs after auth** - Permission to access ≠ permission to send malicious data
+- ✅ **Log all decisions** - Audit trail is critical for security investigations
+- ✅ **Use granular permissions** - Easier to grant/revoke specific capabilities than reassign roles
+
+---
+
 ## Keeping secrets out of git
 
 - `.gitignore` blocks every `.env*` file while explicitly allowing `.env.example`.
