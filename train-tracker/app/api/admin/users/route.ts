@@ -7,12 +7,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withPermission } from '@/lib/rbac-middleware';
 import { Permission } from '@/lib/rbac-config';
 import { prisma } from '@/lib/prisma';
+import { withCORS, createOPTIONSHandler, STRICT_CORS_CONFIG } from '@/lib/cors-middleware';
+
+/**
+ * OPTIONS /api/admin/users
+ * Handle CORS preflight - strict config for admin endpoints
+ */
+export const OPTIONS = createOPTIONSHandler(STRICT_CORS_CONFIG);
 
 /**
  * GET /api/admin/users
  * List all users (requires USER_LIST permission)
  */
-export const GET = withPermission(Permission.USER_LIST, async (request, user) => {
+export const GET = withCORS(withPermission(Permission.USER_LIST, async (request, user) => {
   try {
     // Get query parameters
     const { searchParams } = new URL(request.url);
@@ -66,13 +73,13 @@ export const GET = withPermission(Permission.USER_LIST, async (request, user) =>
       { status: 500 }
     );
   }
-});
+}), STRICT_CORS_CONFIG);
 
 /**
  * POST /api/admin/users
  * Create new user (requires USER_CREATE permission)
  */
-export const POST = withPermission(Permission.USER_CREATE, async (request, user) => {
+export const POST = withCORS(withPermission(Permission.USER_CREATE, async (request, user) => {
   try {
     const body = await request.json();
     const { email, fullName, password, role } = body;
@@ -142,4 +149,4 @@ export const POST = withPermission(Permission.USER_CREATE, async (request, user)
       { status: 500 }
     );
   }
-});
+}), STRICT_CORS_CONFIG);

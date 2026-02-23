@@ -1,12 +1,19 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { RapidApiError, requestRapidApi } from "@/lib/rapidApi";
 import { validationErrorResponse, successResponse, errorResponse, internalErrorResponse, getPaginationParams, createPaginationMeta } from "@/lib/api-response";
 import { ERROR_CODES } from "@/lib/error-codes";
+import { withCORS, createOPTIONSHandler, PUBLIC_CORS_CONFIG } from "@/lib/cors-middleware";
 
 const ERROR_MESSAGES = {
   404: "No trains found for that search",
   default: "Unable to search for trains right now"
 };
+
+/**
+ * OPTIONS /api/trains/search
+ * Handle CORS preflight - public API allows all origins
+ */
+export const OPTIONS = createOPTIONSHandler(PUBLIC_CORS_CONFIG);
 
 /**
  * GET /api/trains/search
@@ -17,7 +24,7 @@ const ERROR_MESSAGES = {
  *   - limit (optional, default: 10): Results per page
  * Returns: { success: true, data: [...trains], meta: { query, page, limit, total, hasMore } }
  */
-export async function GET(request: Request) {
+export const GET = withCORS(async (request: NextRequest) => {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("query")?.trim();
   
@@ -94,4 +101,4 @@ export async function GET(request: Request) {
     console.error("Trains search error:", error);
     return internalErrorResponse("Unable to search for trains at this moment");
   }
-}
+}, PUBLIC_CORS_CONFIG);
