@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withSecurity, sanitizeRequestBody } from '@/lib/security-middleware';
 import { SanitizationLevel, SanitizationRules } from '@/lib/input-sanitizer';
 import { logger } from '@/lib/logger';
+import { withCORS, createOPTIONSHandler } from '@/lib/cors-middleware';
 
 // In-memory storage for demo (use database in production)
 let comments: Array<{
@@ -19,10 +20,16 @@ let comments: Array<{
 }> = [];
 
 /**
+ * OPTIONS /api/security/comments
+ * Handle CORS preflight requests
+ */
+export const OPTIONS = createOPTIONSHandler();
+
+/**
  * GET /api/security/comments
  * Retrieve all comments
  */
-export const GET = withSecurity(async (request: NextRequest) => {
+export const GET = withCORS(withSecurity(async (request: NextRequest) => {
   try {
     return NextResponse.json({
       success: true,
@@ -39,13 +46,13 @@ export const GET = withSecurity(async (request: NextRequest) => {
       { status: 500 }
     );
   }
-});
+}));
 
 /**
  * POST /api/security/comments
  * Create a new comment with sanitization
  */
-export const POST = withSecurity(async (request: NextRequest) => {
+export const POST = withCORS(withSecurity(async (request: NextRequest) => {
   try {
     const body = await request.json();
 
@@ -114,13 +121,13 @@ export const POST = withSecurity(async (request: NextRequest) => {
       { status: 500 }
     );
   }
-});
+}));
 
 /**
  * DELETE /api/security/comments
  * Clear all comments (for demo purposes)
  */
-export const DELETE = withSecurity(async (request: NextRequest) => {
+export const DELETE = withCORS(withSecurity(async (request: NextRequest) => {
   const count = comments.length;
   comments = [];
 
@@ -128,4 +135,4 @@ export const DELETE = withSecurity(async (request: NextRequest) => {
     success: true,
     message: `Deleted ${count} comments`,
   });
-});
+}));

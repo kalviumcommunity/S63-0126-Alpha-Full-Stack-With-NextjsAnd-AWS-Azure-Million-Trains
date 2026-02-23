@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { compare } from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../lib/prisma";
@@ -8,8 +8,16 @@ import { unauthorizedResponse, successResponse, internalErrorResponse } from "..
 import { ERROR_CODES } from "../../../../lib/error-codes";
 import { loginSchema } from "../../../../lib/validation-schemas";
 import { parseAndValidateBody } from "../../../../lib/validation-helpers";
+import { withCORS, createOPTIONSHandler, STRICT_CORS_CONFIG } from "../../../../lib/cors-middleware";
 
 export const runtime = "nodejs";
+
+/**
+ * OPTIONS /api/auth/login
+ * Handle CORS preflight - strict config for auth endpoints
+ */
+export const OPTIONS = createOPTIONSHandler(STRICT_CORS_CONFIG);
+
 function mapPrismaError(error: unknown): { status: number; error: string } {
   if (error instanceof Prisma.PrismaClientInitializationError) {
     return {
@@ -43,7 +51,7 @@ function mapPrismaError(error: unknown): { status: number; error: string } {
  * Refresh token stored in HTTP-only cookie
  * Error (401): { success: false, error: { code: "E401"|"E011" }, timestamp }
  */
-export async function POST(request: Request): Promise<NextResponse> {
+export const POST = withCORS(async (request: NextRequest): Promise<NextResponse> => {
   try {
     // Validate request body with Zod schema
     const validatedData = await parseAndValidateBody(request, loginSchema);
@@ -104,5 +112,5 @@ export async function POST(request: Request): Promise<NextResponse> {
     const mapped = mapPrismaError(error);
     return internalErrorResponse(mapped.error);
   }
-}
+}, STRICT_CORS_CONFIG);
 

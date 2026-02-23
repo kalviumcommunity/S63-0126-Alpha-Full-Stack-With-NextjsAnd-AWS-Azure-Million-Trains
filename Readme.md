@@ -583,6 +583,181 @@ app/
 
 ---
 
+## HTTPS Enforcement & Security Headers
+
+### Overview
+
+Layer 3 of our defense-in-depth security strategy: securing **how data travels and renders** in the browser. This complements RBAC (who can access) and input sanitization (what data enters) with transport and rendering security.
+
+### Key Features
+
+#### 🔒 HTTPS/HSTS Enforcement
+- **Strict-Transport-Security (HSTS)**: Forces HTTPS connections for 2 years
+  - `max-age=63072000` (730 days)
+  - `includeSubDomains` - Applies to all subdomains
+  - `preload` - Eligible for browser preload list
+- **Prevents**: Man-in-the-middle attacks, SSL stripping, protocol downgrades
+
+#### 🛡️ Content Security Policy (CSP)
+- **Default Policy**: `default-src 'self'` - Only same-origin resources
+- **Script Control**: Restricts JavaScript execution to trusted sources
+- **Style Control**: Controls CSS loading and inline styles
+- **Image Control**: Limits image sources (self, data URIs, HTTPS)
+- **Frame Protection**: `frame-ancestors 'none'` - Blocks clickjacking
+- **Prevents**: XSS attacks, code injection, clickjacking, data exfiltration
+
+#### 🌐 CORS Configuration
+Three environment-specific configurations:
+1. **STRICT_CORS_CONFIG** - Authentication/Admin endpoints
+   - Specific origin whitelist
+   - Credentials enabled
+   - Full method support
+2. **PUBLIC_CORS_CONFIG** - Read-only APIs
+   - Allow all origins (`*`)
+   - No credentials
+   - GET/OPTIONS only
+3. **DEV_CORS_CONFIG** - Development only
+   - Permissive for testing
+   - All origins and methods
+
+#### 🔐 Additional Security Headers
+- **X-Frame-Options**: `DENY` - Prevents iframe embedding
+- **X-Content-Type-Options**: `nosniff` - Blocks MIME-sniffing
+- **Referrer-Policy**: `strict-origin-when-cross-origin` - Controls referrer info
+- **Permissions-Policy**: Disables camera, microphone, geolocation
+- **COEP/COOP/CORP**: Cross-origin isolation for enhanced security
+
+### Implementation
+
+#### Global Headers (Next.js Config)
+```javascript
+// next.config.mjs
+async headers() {
+  return [{
+    source: '/:path*',
+    headers: [
+      { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+      { key: 'Content-Security-Policy', value: '...' },
+      { key: 'X-Frame-Options', value: 'DENY' },
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      // ... more headers
+    ]
+  }];
+}
+```
+
+#### CORS Middleware Usage
+```typescript
+// API routes with CORS
+import { withCORS, createOPTIONSHandler, STRICT_CORS_CONFIG } from '@/lib/cors-middleware';
+
+// Options handler for preflight
+export const OPTIONS = createOPTIONSHandler(STRICT_CORS_CONFIG);
+
+// Wrap API handler with CORS
+export const POST = withCORS(async (request) => {
+  // Your handler logic
+}, STRICT_CORS_CONFIG);
+```
+
+#### Combined with RBAC
+```typescript
+// Secure admin endpoint with CORS + permissions
+import { withCORS } from '@/lib/cors-middleware';
+import { withPermission } from '@/lib/rbac-middleware';
+
+export const GET = withCORS(
+  withPermission(Permission.USER_LIST, async (request, user) => {
+    // Admin logic
+  }),
+  STRICT_CORS_CONFIG
+);
+```
+
+### File Structure
+```
+lib/
+├── security-headers.ts       # Security headers utilities
+│   ├── HSTS configuration
+│   ├── CSP directives
+│   ├── generateCORSHeaders()
+│   ├── getSecurityHeaders()
+│   └── generateSecurityReport()
+└── cors-middleware.ts        # CORS middleware
+    ├── withCORS()
+    ├── createOPTIONSHandler()
+    ├── STRICT_CORS_CONFIG
+    ├── PUBLIC_CORS_CONFIG
+    └── DEV_CORS_CONFIG
+
+app/
+├── api/
+│   ├── auth/login/          # STRICT_CORS_CONFIG
+│   ├── admin/users/         # STRICT_CORS_CONFIG
+│   ├── trains/search/       # PUBLIC_CORS_CONFIG
+│   └── security/
+│       ├── comments/        # Default CORS (demo)
+│       └── headers-check/   # Headers verification API
+└── headers-demo/
+    └── page.tsx             # Interactive headers demo
+```
+
+### Testing & Verification
+
+#### 1. Interactive Demo Page
+Visit: **http://localhost:3000/headers-demo**
+- ✅ Real-time security header verification
+- ✅ Protocol check (HTTP vs HTTPS)
+- ✅ Security score calculation (0-100%)
+- ✅ CORS preflight testing
+- ✅ Detailed header information with pass/fail status
+
+#### 2. Manual Testing
+```bash
+# Test HSTS header
+curl -I https://yourdomain.com | grep strict-transport
+
+# Test CORS preflight
+curl -X OPTIONS https://yourdomain.com/api/auth/login \
+  -H "Origin: https://example.com" \
+  -v
+
+# Test all security headers
+curl -I https://yourdomain.com | grep -E "(strict-transport|content-security|x-frame|x-content)"
+```
+
+#### 3. Online Security Scanners
+- **SecurityHeaders.com**: https://securityheaders.com (aim for A+)
+- **Mozilla Observatory**: https://observatory.mozilla.org
+- **SSL Labs**: https://www.ssllabs.com/ssltest/ (aim for A+)
+
+### Security Score
+
+Your application should achieve:
+- ✅ **SecurityHeaders.com**: A+ grade
+- ✅ **Mozilla Observatory**: 90+ score
+- ✅ **SSL Labs**: A+ rating
+- ✅ **HSTS Preload**: Eligible for inclusion
+
+### Documentation
+
+- **Full Guide**: [HTTPS_SECURITY_GUIDE.md](train-tracker/HTTPS_SECURITY_GUIDE.md) - Comprehensive implementation details
+- **Configuration**: Environment-specific CORS configs
+- **Best Practices**: HTTPS everywhere, CSP tuning, CORS restrictions
+- **Troubleshooting**: Common issues and solutions
+
+### Defense-in-Depth Summary
+
+| Layer | Purpose | Implementation |
+|-------|---------|----------------|
+| **Layer 1: RBAC** | WHO can access | 6 roles, 17 permissions, JWT auth |
+| **Layer 2: Input Sanitization** | WHAT data enters | 4 levels, XSS prevention, SQL protection |
+| **Layer 3: HTTPS/Headers** | HOW data travels | HSTS, CSP, CORS, 12 security headers |
+
+All three layers work together to provide **enterprise-grade security**.
+
+---
+
 ## Keeping secrets out of git
 
 - `.gitignore` blocks every `.env*` file while explicitly allowing `.env.example`.
