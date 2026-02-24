@@ -19,6 +19,11 @@ const s3Client = new S3Client({
   },
 });
 
+const bucketName =
+  process.env.AWS_S3_BUCKET ||
+  process.env.AWS_BUCKET_NAME ||
+  "";
+
 /**
  * File upload utilities for AWS S3
  */
@@ -42,7 +47,7 @@ export const s3Utils = {
   ): Promise<string> {
     try {
       const command = new PutObjectCommand({
-        Bucket: process.env.AWS_BUCKET_NAME || "",
+        Bucket: bucketName,
         Key: fileName,
         ContentType: contentType,
       });
@@ -68,7 +73,7 @@ export const s3Utils = {
   ): Promise<string> {
     try {
       const command = new GetObjectCommand({
-        Bucket: process.env.AWS_BUCKET_NAME || "",
+        Bucket: bucketName,
         Key: fileName,
       });
 
@@ -88,7 +93,7 @@ export const s3Utils = {
   async deleteFile(fileName: string): Promise<void> {
     try {
       const command = new DeleteObjectCommand({
-        Bucket: process.env.AWS_BUCKET_NAME || "",
+        Bucket: bucketName,
         Key: fileName,
       });
 
@@ -107,7 +112,7 @@ export const s3Utils = {
    * @returns Public S3 URL (assumes bucket is publicly readable)
    */
   getPublicUrl(fileName: string): string {
-    return `https://${process.env.AWS_BUCKET_NAME}.s3.${
+    return `https://${bucketName}.s3.${
       process.env.AWS_REGION || "us-east-1"
     }.amazonaws.com/${fileName}`;
   },
