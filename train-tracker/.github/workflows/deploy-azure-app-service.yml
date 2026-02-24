@@ -1,0 +1,121 @@
+name: Deploy to Azure App Service
+
+on:
+  push:
+    branches:
+      - main
+      - production
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: train-tracker-app
+  ACR_LOGIN_SERVER: traintracker.azurecr.io
+  ACR_REPOSITORY: train-tracker
+  RESOURCE_GROUP: train-tracker-rg
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy to Azure
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Azure Container Registry
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.AZURE_ACR_USERNAME }}
+          password: ${{ secrets.AZURE_ACR_PASSWORD }}
+
+      - name: Build and push Docker image
+        id: build-image
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          IMAGE_URI=${{ env.ACR_LOGIN_SERVER }}/${{ env.ACR_REPOSITORY }}:$IMAGE_TAG
+          LATEST_URI=${{ env.ACR_LOGIN_SERVER }}/${{ env.ACR_REPOSITORY }}:latest
+          
+          # Build and push with tags
+          docker build -t $IMAGE_URI -t $LATEST_URI .
+          docker push $IMAGE_URI
+          docker push $LATEST_URI
+          
+          echo "image=$IMAGE_URI" >> $GITHUB_OUTPUT
+          echo "✅ Image pushed: $IMAGE_URI"
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Web App
+        id: deploy-webapp
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          images: ${{ steps.build-image.outputs.image }}
+
+      - name: Update App Service Configuration
+        run: |
+          # Set container settings
+          az webapp config container set \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --docker-custom-image-name ${{ steps.build-image.outputs.image }} \
+            --docker-registry-server-url https://${{ env.ACR_LOGIN_SERVER }}
+
+          # Configure health check
+          az webapp config set \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --health-check-path "/api/health" \
+            --always-on true \
+            --http20-enabled true \
+            --min-tls-version 1.2
+
+          # Restart app to apply changes
+          az webapp restart \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }}
+
+      - name: Wait for deployment to stabilize
+        run: |
+          echo "Waiting for deployment to stabilize..."
+          sleep 30
+          
+          # Check health endpoint
+          WEBAPP_URL="https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
+          HEALTH_URL="${WEBAPP_URL}/api/health"
+          
+          for i in {1..10}; do
+            if curl -f -s "$HEALTH_URL" > /dev/null; then
+              echo "✅ Health check passed!"
+              echo "Application is running at: $WEBAPP_URL"
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying in 10s..."
+            sleep 10
+          done
+          
+          echo "❌ Health check failed after 10 attempts"
+          exit 1
+
+      - name: Azure Logout
+        if: always()
+        run: az logout
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Deployment to Azure App Service succeeded"
+            echo "Image: ${{ steps.build-image.outputs.image }}"
+            echo "App URL: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
+          else
+            echo "❌ Deployment to Azure App Service failed"
+          fi
