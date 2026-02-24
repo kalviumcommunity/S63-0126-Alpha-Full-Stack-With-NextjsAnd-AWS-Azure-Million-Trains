@@ -1333,6 +1333,106 @@ await fetch(data.uploadUrl, {
 
 ---
 
+## Environment Setup on Cloud (Secrets Manager / Key Vault)
+
+### Overview
+
+Production secrets should live in a managed vault instead of `.env` files. This project supports **AWS Secrets Manager** or **Azure Key Vault** and loads secrets at runtime without exposing values to the client.
+
+### AWS Secrets Manager Setup
+
+1. Create a secret with key-value pairs matching your `.env` keys:
+
+```json
+{
+  "DATABASE_URL": "postgresql://admin:password@db.amazonaws.com:5432/traintracker",
+  "JWT_SECRET": "supersecuretokenkey",
+  "JWT_REFRESH_SECRET": "anothersecuretokenkey"
+}
+```
+
+2. Save the secret ARN and set runtime variables:
+
+```bash
+SECRET_PROVIDER="aws"
+AWS_SECRET_ARN="arn:aws:secretsmanager:us-east-1:123456789012:secret:train-tracker/app-secrets"
+AWS_SECRET_REGION="us-east-1"
+```
+
+3. Grant least-privilege access (read only):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "secretsmanager:GetSecretValue",
+      "Resource": "arn:aws:secretsmanager:us-east-1:123456789012:secret:train-tracker/app-secrets*"
+    }
+  ]
+}
+```
+
+### Azure Key Vault Setup
+
+1. Create secrets in Key Vault (one per key):
+
+```bash
+az keyvault secret set --vault-name kv-train-tracker --name DATABASE_URL --value "postgresql://admin:password@azure.com:5432/traintracker"
+az keyvault secret set --vault-name kv-train-tracker --name JWT_SECRET --value "supersecuretokenkey"
+az keyvault secret set --vault-name kv-train-tracker --name JWT_REFRESH_SECRET --value "anothersecuretokenkey"
+```
+
+2. Configure runtime variables:
+
+```bash
+SECRET_PROVIDER="azure"
+AZURE_KEY_VAULT_NAME="kv-train-tracker"
+CLOUD_SECRET_KEYS="DATABASE_URL,JWT_SECRET,JWT_REFRESH_SECRET"
+```
+
+3. Grant least-privilege access:
+
+```bash
+az keyvault set-policy \
+  --name kv-train-tracker \
+  --spn <app-client-id> \
+  --secret-permissions get list
+```
+
+### Runtime Retrieval
+
+Use the helper to fetch secrets server-side:
+
+```typescript
+import { loadCloudSecrets } from '@/lib/cloud-secrets';
+
+const secrets = await loadCloudSecrets({ applyToEnv: true });
+console.log('Retrieved keys:', Object.keys(secrets));
+```
+
+Health endpoint (disabled by default in production):
+
+```bash
+SECRET_HEALTH_ENABLED="true"
+GET /api/secrets/health
+```
+
+### Rotation & Access Controls
+
+- Rotate database passwords and JWT secrets monthly (or after any incident)
+- Limit IAM/managed identity permissions to **GetSecretValue** only
+- Use separate secrets per environment (dev/staging/prod)
+- Keep audit logs enabled in AWS CloudTrail or Azure Monitor
+
+### Documentation
+
+- **Runtime helper**: [train-tracker/lib/cloud-secrets.ts](train-tracker/lib/cloud-secrets.ts)
+- **Health check**: [train-tracker/app/api/secrets/health/route.ts](train-tracker/app/api/secrets/health/route.ts)
+
+---
+
 ## Keeping secrets out of git
 
 - `.gitignore` blocks every `.env*` file while explicitly allowing `.env.example`.
