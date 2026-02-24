@@ -5,8 +5,18 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Enable standalone output for Docker deployments
+  output: 'standalone',
+  
   turbopack: {
     root: __dirname,
+  },
+
+  // Experimental features
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
   },
 
   // Security Headers Configuration
