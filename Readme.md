@@ -1223,6 +1223,116 @@ az monitor metrics alert create \
 
 ---
 
+## Object Storage Configuration (S3 / Azure Blob)
+
+### Overview
+
+This project supports **secure object storage** for uploads using either **AWS S3** or **Azure Blob Storage**. Files are uploaded via **pre-signed URLs** (AWS) or **SAS URLs** (Azure), so clients can upload directly without exposing secrets.
+
+### Environment Configuration
+
+Enable uploads and choose a provider in your `.env.*`:
+
+```bash
+# Enable upload feature
+FEATURE_FILE_UPLOADS="true"
+
+# Choose provider
+STORAGE_PROVIDER="aws"  # or "azure"
+
+# AWS S3
+AWS_S3_BUCKET="train-tracker-uploads"
+AWS_BUCKET_NAME="train-tracker-uploads"  # Backward-compatible alias
+AWS_REGION="us-east-1"
+AWS_ACCESS_KEY_ID="your-access-key"
+AWS_SECRET_ACCESS_KEY="your-secret-key"
+
+# Azure Blob
+AZURE_STORAGE_ACCOUNT_NAME="traintracker"
+AZURE_STORAGE_ACCOUNT_KEY="your-storage-key"
+AZURE_STORAGE_CONTAINER="uploads"
+```
+
+### API: Generate Upload URL
+
+Endpoint: `POST /api/upload/presigned`
+
+**Request body**
+```json
+{
+  "fileName": "avatar.png",
+  "fileType": "image/png",
+  "fileSize": 245901,
+  "folder": "avatars",
+  "action": "upload"
+}
+```
+
+**Response (AWS S3)**
+```json
+{
+  "success": true,
+  "data": {
+    "provider": "aws",
+    "action": "upload",
+    "fileKey": "avatars/2026/02/avatar-1708690000000.png",
+    "uploadUrl": "https://...",
+    "expiresIn": 60,
+    "method": "PUT",
+    "headers": {
+      "Content-Type": "image/png"
+    }
+  }
+}
+```
+
+### Client Upload Example
+
+```typescript
+const res = await fetch('/api/upload/presigned', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    fileName: file.name,
+    fileType: file.type,
+    fileSize: file.size,
+    folder: 'avatars'
+  })
+});
+
+const { data } = await res.json();
+
+await fetch(data.uploadUrl, {
+  method: 'PUT',
+  headers: data.headers,
+  body: file
+});
+```
+
+### Validation & Security
+
+- **File validation** enforced server-side via [train-tracker/lib/file-validation.ts](train-tracker/lib/file-validation.ts)
+  - Allowed MIME types and extensions
+  - Max file size (`S3_CONFIG.MAX_FILE_SIZE`)
+  - File name sanitization (blocks path traversal)
+- **Private storage** by default (no public bucket/container access)
+- **Short-lived URLs** (60s upload, 1h download)
+- **Least-privilege credentials** (IAM policy or SAS permissions)
+
+### Lifecycle Policies & Cost
+
+- **S3**: add lifecycle rules to transition older files to Glacier or delete after 30 days
+- **Azure Blob**: add lifecycle policies to move blobs to Cool/Archive tiers
+- Keep uploads private unless a public CDN is required
+
+### Documentation
+
+- **Code**: [train-tracker/app/api/upload/presigned/route.ts](train-tracker/app/api/upload/presigned/route.ts)
+- **AWS Utils**: [train-tracker/lib/s3.ts](train-tracker/lib/s3.ts)
+- **Azure Utils**: [train-tracker/lib/azure-blob.ts](train-tracker/lib/azure-blob.ts)
+
+---
+
 ## Keeping secrets out of git
 
 - `.gitignore` blocks every `.env*` file while explicitly allowing `.env.example`.

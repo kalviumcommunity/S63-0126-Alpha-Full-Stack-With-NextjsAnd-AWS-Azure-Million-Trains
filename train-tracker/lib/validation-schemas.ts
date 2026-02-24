@@ -101,6 +101,40 @@ export const contactSchema = z.object({
 );
 
 /**
+ * Upload URL Request Schema
+ */
+
+export const uploadUrlRequestSchema = z.object({
+  fileName: z
+    .string({ message: "File name is required" })
+    .min(1, { message: "File name cannot be empty" })
+    .max(255, { message: "File name must not exceed 255 characters" })
+    .trim(),
+
+  fileType: z
+    .string({ message: "File type is required" })
+    .min(1, { message: "File type cannot be empty" })
+    .trim(),
+
+  fileSize: z
+    .number({ message: "File size is required" })
+    .int("File size must be an integer")
+    .positive("File size must be greater than 0"),
+
+  folder: z
+    .string()
+    .min(1, { message: "Folder cannot be empty" })
+    .max(60, { message: "Folder must not exceed 60 characters" })
+    .trim()
+    .optional(),
+
+  action: z
+    .enum(["upload", "download"])
+    .optional()
+    .default("upload")
+});
+
+/**
  * Train Search Schema
  */
 
@@ -171,6 +205,7 @@ export const queryStringSchema = z.object({
 export type SignupInput = z.infer<typeof signupSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ContactInput = z.infer<typeof contactSchema>;
+export type UploadUrlRequestInput = z.infer<typeof uploadUrlRequestSchema>;
 export type TrainSearchInput = z.infer<typeof trainSearchSchema>;
 export type PaginationInput = z.infer<typeof paginationSchema>;
 export type QueryStringInput = z.infer<typeof queryStringSchema>;
